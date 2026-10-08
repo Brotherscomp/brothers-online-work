@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Log in | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <h1>{{ tr('Log in') }}</h1>
+  <form method="post" action="{{ url_for('auth.login') }}">
+    <label for="email">{{ tr('Email') }}</label>
+    <input id="email" name="email" type="email" autocomplete="email" required>
+    <label for="password">{{ tr('Password') }}</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">{{ tr('Log in') }}</button>
+  </form>
+{% endblock %}

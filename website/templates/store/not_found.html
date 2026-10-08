@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Product not found | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <h1>{{ tr('Product not found') }}</h1>
+  <p>{{ tr('This item may have been removed from the shop.') }}</p>
+  <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Back to the shop') }}</a>
+{% endblock %}

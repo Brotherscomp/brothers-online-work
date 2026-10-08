@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Shop | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">{{ tr('BROTHERS-ONLINE-WORK · ETHIOPIA') }}</p>
+      <h1>{{ tr('Your tech and documents.') }}<br><span>{{ tr('Handled with care.') }}</span></h1>
+      <p class="hero-lede">{{ tr('Shop computers, phones, and printers. Get repairs, print and copy work, lamination, and help with online forms—all in one place.') }}</p>
+      <div class="hero-actions">
+        <a class="button-link" href="#catalog">{{ tr('Explore our services') }} <span aria-hidden="true">→</span></a>
+        <a class="text-link" href="#contact">{{ tr('Get in touch') }}</a>
+      </div>
+      <p class="hero-note">{{ tr('Clear starting prices · Confirmed with you before work begins') }}</p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="hero-art-card art-card-one"><span>💻</span><small>{{ tr('Tech support') }}</small></div>
+      <div class="hero-art-card art-card-two"><span>📄</span><small>{{ tr('Print & copy') }}</small></div>
+      <div class="hero-art-card art-card-three"><span>📝</span><small>{{ tr('Form help') }}</small></div>
+      <div class="hero-orbit"></div>
+    </div>
+  </section>
+
+  <section class="price-overview" aria-labelledby="price-overview-title">
+    <div class="section-heading compact-heading">
+      <div><p class="eyebrow">{{ tr('QUICK PRICE GUIDE') }}</p><h2 id="price-overview-title">{{ tr('A few popular services') }}</h2></div>
+      <a class="text-link" href="#catalog">{{ tr('View all services') }} <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="price-grid">
+      {% for product in highlights %}
+        <a class="price-card" href="{{ url_for('views.product_detail', product_id=product.id) }}">
+          <span class="price-card-icon" aria-hidden="true">{{ product.emoji }}</span>
+          <span class="price-card-copy"><strong>{{ tr(product.name) }}</strong><small>{% if product.pricing_kind == 'from' %}{{ tr('From') }} {% endif %}{{ product.price_cents | money }}{% if product.unit_label != 'each' %} / {{ tr(product.unit_label) }}{% endif %}</small></span>
+          <span class="price-arrow" aria-hidden="true">↗</span>
+        </a>
+      {% endfor %}
+    </div>
+    <p class="price-disclaimer">{{ tr('Suggested starting prices in ETB. Exact device prices depend on model and availability; repairs may require additional parts.') }}</p>
+  </section>
+
+  <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
+    <div class="section-heading">
+      <div><p class="eyebrow">{{ tr('WHAT WE OFFER') }}</p><h2 id="catalog-title">{{ tr('Services for everyday needs') }}</h2></div>
+      <p>{{ tr('Choose an item to see details or add it to your request.') }}</p>
+    </div>
+    {% for category, items in catalog_groups %}
+      <div class="category-block">
+        <div class="category-heading"><h3>{{ tr(category) }}</h3><span>{{ items | length }} {{ tr('options') }}</span></div>
+        <div class="product-grid">
+          {% for product in items %}
+            <article class="product-card">
+              <a class="product-visual" href="{{ url_for('views.product_detail', product_id=product.id) }}" aria-label="{{ tr('View') }} {{ tr(product.name) }}">
+                <span aria-hidden="true">{{ product.emoji }}</span>
+              </a>
+              <div class="product-info">
+                <h4><a href="{{ url_for('views.product_detail', product_id=product.id) }}">{{ tr(product.name) }}</a></h4>
+                <p>{{ tr(product.description) }}</p>
+                <div class="product-buy-row">
+                  <strong>{% if product.pricing_kind == 'from' %}{{ tr('From') }} {% endif %}{{ product.price_cents | money }}{% if product.unit_label != 'each' %}<small> / {{ tr(product.unit_label) }}</small>{% endif %}</strong>
+                  <form method="post" action="{{ url_for('views.add_to_cart', product_id=product.id) }}">
+                    <button type="submit" {% if product.stock < 1 %}disabled{% endif %}>
+                      {% if product.stock < 1 %}{{ tr('Unavailable') }}{% else %}{{ tr('Add to request') }}{% endif %}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <p>{{ tr('No products or services are available right now.') }}</p>
+    {% endfor %}
+  </section>
+
+  <section class="why-section" id="why-us" aria-labelledby="why-title">
+    <div class="why-heading"><p class="eyebrow">{{ tr('WHY BROTHERS-ONLINE-WORK') }}</p><h2 id="why-title">{{ tr('Helpful service, from start to finish.') }}</h2><p>{{ tr('Tell us what you need. We’ll confirm the details and price before completing the work.') }}</p></div>
+    <div class="benefit-grid">
+      <article><span>01</span><h3>{{ tr('Tech in one place') }}</h3><p>{{ tr('Find computer, mobile, and printer sales and repair services in the same shop.') }}</p></article>
+      <article><span>02</span><h3>{{ tr('Documents made easier') }}</h3><p>{{ tr('Bring printing, copying, and lamination needs together with online form assistance.') }}</p></article>
+      <article><span>03</span><h3>{{ tr('Upfront estimates') }}</h3><p>{{ tr('See suggested ETB prices. We confirm model-specific prices and repair parts with you first.') }}</p></article>
+      <article><span>04</span><h3>{{ tr('Your details matter') }}</h3><p>{{ tr('For passport and DV forms, review every detail before submitting your application.') }}</p></article>
+    </div>
+  </section>
+
+  <section class="facts-strip" aria-label="{{ tr('Store information') }}">
+    <div class="fact-item"><strong>{{ catalog_groups | length }}</strong><span>{{ tr('Service categories') }}</span></div>
+    <div class="fact-item"><strong>EN <i>·</i> አማ</strong><span>{{ tr('English and Amharic') }}</span></div>
+    <div class="fact-item"><strong>ETB</strong><span>{{ tr('Prices shown in birr') }}</span></div>
+    <div class="fact-item"><strong>✓</strong><span>{{ tr('Confirm the final price before work') }}</span></div>
+  </section>
+
+  <section class="contact-section" id="contact" aria-labelledby="contact-title">
+    <div class="contact-panel">
+      <div class="contact-heading">
+        <h2 id="contact-title">{{ tr('Send a Message') }}</h2>
+        <p>{{ tr('We’ll respond within one business day.') }}</p>
+      </div>
+      <div class="contact-layout">
+        <form class="contact-form" id="contact-form" action="{{ url_for('views.contact') }}" method="post">
+        <div class="contact-honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+        <div class="contact-form-row">
+          <label class="contact-field">{{ tr('First Name') }}
+            <input type="text" name="first_name" autocomplete="given-name" placeholder="{{ tr('Abebe') }}" required>
+          </label>
+          <label class="contact-field">{{ tr('Last Name') }}
+            <input type="text" name="last_name" autocomplete="family-name" placeholder="{{ tr('Kebede') }}" required>
+          </label>
+        </div>
+        <label class="contact-field">{{ tr('Email Address') }}
+          <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+        <label class="contact-field">{{ tr('Phone Number (optional)') }}
+          <input type="tel" name="phone" autocomplete="tel" placeholder="09XX XXX XXX">
+        </label>
+        <label class="contact-field">{{ tr('Service of Interest') }}
+          <select name="service" required>
+            <option value="" selected disabled>{{ tr('Select a service...') }}</option>
+            {% for category, items in catalog_groups %}
+              <optgroup label="{{ tr(category) }}">
+                {% for product in items %}
+                  <option value="{{ product.name }}">{{ tr(product.name) }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="contact-field">{{ tr('Your Message') }}
+          <textarea name="message" rows="5" placeholder="{{ tr('Tell us how we can help...') }}" required></textarea>
+        </label>
+        <button class="contact-submit" type="submit">{{ tr('Send Message') }}</button>
+        <p class="contact-delivery-note">{{ tr('Your message is delivered to our team and a confirmation is emailed to you.') }}</p>
+      </form>
+      <address class="contact-owner" aria-label="{{ tr('Contact details') }}">
+        <h3>{{ tr('Contact details') }}</h3>
+        <p><span>{{ tr('Manager') }}</span><strong>Yazezee Kassa</strong></p>
+        <p><span>{{ tr('Phone') }}</span><a href="tel:0909847775">0909847775</a></p>
+        <p><span>{{ tr('Email') }}</span><a href="mailto:yazezewkassa@gmail.com">yazezewkassa@gmail.com</a></p>
+      </address>
+      </div>
+      <div class="contact-extra-links">
+        <a href="#catalog">{{ tr('Browse services') }} <span aria-hidden="true">→</span></a>
+        <a href="{{ url_for('views.cart') }}">{{ tr('Review your request') }} <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

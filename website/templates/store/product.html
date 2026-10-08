@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ tr(product.name) }} | Brothers-Online-Work{% endblock %}
+{% block content %}
+  <p><a href="{{ url_for('views.home') }}">← {{ tr('Back to shop') }}</a></p>
+  <article class="product-detail">
+    <div class="product-visual product-visual-large" aria-hidden="true">{{ product.emoji }}</div>
+    <div>
+      <p class="eyebrow">BROTHERS-ONLINE-WORK</p>
+      <h1>{{ tr(product.name) }}</h1>
+      <p>{{ tr(product.description) }}</p>
+      <p class="detail-price">{% if product.pricing_kind == 'from' %}{{ tr('From') }} {% endif %}{{ product.price_cents | money }}{% if product.unit_label != 'each' %} / {{ tr(product.unit_label) }}{% endif %}</p>
+      <p>{{ tr('Availability confirmed on request.') }}</p>
+      <form method="post" action="{{ url_for('views.add_to_cart', product_id=product.id) }}">
+        <button type="submit" {% if product.stock < 1 %}disabled{% endif %}>{{ tr('Add to request') }}</button>
+      </form>
+    </div>
+  </article>
+{% endblock %}

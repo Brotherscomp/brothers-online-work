@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Log out | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <h1>{{ tr('Log out') }}</h1>
+  <p>{{ tr('Are you sure you want to log out?') }}</p>
+  <form method="post" action="{{ url_for('auth.logout') }}">
+    <button type="submit">{{ tr('Log out') }}</button>
+  </form>
+{% endblock %}

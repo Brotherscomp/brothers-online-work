@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Order received | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="order-success">
+    <p class="success-mark" aria-hidden="true">✓</p>
+    <p class="eyebrow">{{ tr('REQUEST RECEIVED') }}</p>
+    <h1>{{ tr('Thanks! We received your request.') }}</h1>
+    <p>{{ tr('Request number:') }} <strong>#{{ order_id }}</strong>.</p>
+    <p>{{ tr('Estimated total:') }} <strong>{{ total_cents | money }}</strong></p>
+    <p class="muted">{{ tr('We’ll confirm availability and final pricing with you. No payment has been taken.') }}</p>
+    <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Back to the shop') }}</a>
+  </section>
+{% endblock %}

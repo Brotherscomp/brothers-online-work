@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="{{ get_language() }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Brothers-Online-Work{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <a class="brand" href="{{ url_for('views.home') }}"><span class="brand-mark" aria-hidden="true">BOW</span>Brothers-Online-Work</a>
+    <button class="nav-toggle" type="button" aria-controls="main-nav" aria-expanded="false" aria-label="{{ tr('Open navigation') }}">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="site-nav" id="main-nav" aria-label="{{ tr('Main navigation') }}">
+      <a href="{{ url_for('views.home') }}#catalog">{{ tr('Services') }}</a>
+      <a href="{{ url_for('views.home') }}#why-us">{{ tr('About') }}</a>
+      <a href="{{ url_for('views.home') }}#contact">{{ tr('Contact') }}</a>
+      <a href="{{ url_for('views.cart') }}">{{ tr('Cart') }} ({{ session.get('cart', {}).values() | sum }})</a>
+      {% if session.get('user_id') %}
+        <span>{{ tr('Hi,') }} {{ session.get('first_name', 'there') }}</span>
+        <a href="{{ url_for('auth.logout') }}">{{ tr('Log out') }}</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">{{ tr('Log in') }}</a>
+        <a href="{{ url_for('auth.sign_up') }}">{{ tr('Sign up') }}</a>
+      {% endif %}
+      <div class="language-switch" role="group" aria-label="{{ tr('Language') }}">
+        <form method="post" action="{{ url_for('views.set_language', language='en') }}">
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" class="language-button {% if get_language() == 'en' %}is-active{% endif %}" aria-label="English" aria-pressed="{{ 'true' if get_language() == 'en' else 'false' }}">EN</button>
+        </form>
+        <form method="post" action="{{ url_for('views.set_language', language='am') }}">
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" class="language-button {% if get_language() == 'am' %}is-active{% endif %}" aria-label="አማርኛ" aria-pressed="{{ 'true' if get_language() == 'am' else 'false' }}">አማ</button>
+        </form>
+      </div>
+    </nav>
+  </header>
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul aria-live="polite">
+          {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div><a class="footer-brand" href="{{ url_for('views.home') }}">Brothers-Online-Work</a><p>{{ tr('Technology, print, and form assistance in one place.') }}</p></div>
+    <span>{{ tr('ETB pricing · Ethiopia') }}</span>
+  </footer>
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</body>
+</html>

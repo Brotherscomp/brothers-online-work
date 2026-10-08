@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Your Cart | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <h1>{{ tr('Your cart') }}</h1>
+  {% if lines %}
+    <form method="post" action="{{ url_for('views.update_cart') }}">
+      <div class="cart-lines">
+        {% for line in lines %}
+          <div class="cart-line">
+            <div class="cart-product">
+              <span class="cart-emoji" aria-hidden="true">{{ line.product.emoji }}</span>
+              <div><strong>{{ tr(line.product.name) }}</strong><div>{% if line.product.pricing_kind == 'from' %}{{ tr('From') }} {% endif %}{{ line.product.price_cents | money }}{% if line.product.unit_label != 'each' %} / {{ tr(line.product.unit_label) }}{% endif %}</div></div>
+            </div>
+            <label>{{ tr('Qty') }}
+              <input type="number" name="quantity_{{ line.product.id }}" min="0" max="{{ line.product.stock }}" value="{{ line.quantity }}">
+            </label>
+            <strong>{{ line.line_total | money }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="button-secondary">{{ tr('Update cart') }}</button>
+    </form>
+    <div class="cart-total"><span>{{ tr('Subtotal') }}</span><strong>{{ total_cents | money }}</strong></div>
+    <p class="muted">{{ tr('Prices are estimates for products marked “From.” Final product and repair prices are confirmed before work or sale. This demo records requests and does not take payment.') }}</p>
+    <a class="button-link" href="{{ url_for('views.checkout') }}">{{ tr('Continue') }}</a>
+  {% else %}
+    <p>{{ tr('Your cart is empty.') }}</p>
+    <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Continue shopping') }}</a>
+  {% endif %}
+{% endblock %}
