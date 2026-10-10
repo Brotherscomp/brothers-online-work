@@ -8,7 +8,7 @@
       <p class="hero-lede">{{ tr('Shop computers, phones, and printers. Get repairs, print and copy work, lamination, and help with online forms—all in one place.') }}</p>
       <div class="hero-actions">
         <a class="button-link" href="#catalog">{{ tr('Explore our services') }} <span aria-hidden="true">→</span></a>
-        <a class="text-link" href="#contact">{{ tr('Get in touch') }}</a>
+        <a class="text-link" href="#device-request">{{ tr('Request a device quote') }}</a>
       </div>
       <p class="hero-note">{{ tr('Clear starting prices · Confirmed with you before work begins') }}</p>
     </div>
@@ -17,6 +17,23 @@
       <div class="hero-art-card art-card-two"><span>📄</span><small>{{ tr('Print & copy') }}</small></div>
       <div class="hero-art-card art-card-three"><span>📝</span><small>{{ tr('Form help') }}</small></div>
       <div class="hero-orbit"></div>
+    </div>
+  </section>
+
+  <section class="service-gallery" aria-labelledby="gallery-title">
+    <div class="section-heading compact-heading">
+      <div><p class="eyebrow">OUR WORK</p><h2 id="gallery-title">Service gallery</h2></div>
+      <p>Computer, phone, printer, and projector services from Brothers-Online-Work.</p>
+    </div>
+    <div class="gallery-grid">
+      <figure class="gallery-feature"><img src="{{ url_for('static', filename='images/computer-repair-poster.jpg') }}" alt="Computer repair service" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/brothers-computer-services.jpg') }}" alt="Brothers Computer services" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/electronics-repair-tools.jpg') }}" alt="Electronics repair tools" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/projector-installation.jpg') }}" alt="Projector installation service" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/mobile-repair-services.jpg') }}" alt="Mobile phone repair service" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/projector-repair.jpg') }}" alt="Projector repair service" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/printer-repair-service.jpg') }}" alt="Printer repair service" loading="lazy"></figure>
+      <figure><img src="{{ url_for('static', filename='images/epson-printer-repair.jpg') }}" alt="Epson printer maintenance and repair service" loading="lazy"></figure>
     </div>
   </section>
 
@@ -141,6 +158,66 @@
         <a href="#catalog">{{ tr('Browse services') }} <span aria-hidden="true">→</span></a>
         <a href="{{ url_for('views.cart') }}">{{ tr('Review your request') }} <span aria-hidden="true">↗</span></a>
       </div>
+    </div>
+  </section>
+
+  <section class="device-request-section" id="device-request" aria-labelledby="device-request-title">
+    <div class="device-request-panel">
+      <div class="device-request-heading">
+        <p class="eyebrow">{{ tr('DEVICE SALES & REPAIR') }}</p>
+        <h2 id="device-request-title">{{ tr('Tell us the brand and what you need') }}</h2>
+        <p>{{ tr('Share the device brand and details. We’ll review them and email you an estimated price or repair feedback.') }}</p>
+      </div>
+      <form class="device-request-form" action="{{ url_for('views.device_request') }}" method="post">
+        <div class="contact-honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+        <div class="device-form-row">
+          <label class="contact-field">{{ tr('Your name') }}
+            <input type="text" name="customer_name" autocomplete="name" maxlength="160" required>
+          </label>
+          <label class="contact-field">{{ tr('Email Address') }}
+            <input type="email" name="email" autocomplete="email" maxlength="254" required>
+          </label>
+        </div>
+        <div class="device-form-row">
+          <label class="contact-field">{{ tr('Phone Number (optional)') }}
+            <input type="tel" name="phone" autocomplete="tel" maxlength="40">
+          </label>
+          <label class="contact-field">{{ tr('What do you need?') }}
+            <select name="request_type" id="device-request-type" required>
+              <option value="purchase">{{ tr('New device purchase') }}</option>
+              <option value="repair">{{ tr('Device repair') }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="device-form-row">
+          <label class="contact-field">{{ tr('Device type') }}
+            <select name="device_type" required>
+              <option value="computer">{{ tr('Computer') }}</option>
+              <option value="mobile">{{ tr('Mobile phone') }}</option>
+              <option value="printer">{{ tr('Printer') }}</option>
+              <option value="projector">{{ tr('Projector') }}</option>
+              <option value="other">{{ tr('Other device') }}</option>
+            </select>
+          </label>
+          <label class="contact-field">{{ tr('Brand') }}
+            <input type="text" name="brand" maxlength="100" placeholder="{{ tr('For example, HP, Dell, Samsung') }}" required>
+          </label>
+        </div>
+        <div class="device-form-row">
+          <label class="contact-field">{{ tr('Model (if known)') }}
+            <input type="text" name="model" maxlength="120">
+          </label>
+          <label class="contact-field">{{ tr('Budget in ETB (optional)') }}
+            <input type="number" name="budget_etb" min="0.01" max="100000000" step="0.01" inputmode="decimal">
+          </label>
+        </div>
+        <label class="contact-field device-details-field" data-purchase-label="{{ tr('Tell us the features or specifications you want.') }}" data-repair-label="{{ tr('Describe what failed, what the device does, and when the problem started.') }}">
+          <span class="device-details-label">{{ tr('Tell us the features or specifications you want.') }}</span>
+          <textarea name="details" rows="5" maxlength="5000" placeholder="{{ tr('Include any useful details...') }}" required></textarea>
+        </label>
+        <button class="contact-submit" type="submit">{{ tr('Send quote or repair request') }}</button>
+        <p class="contact-delivery-note">{{ tr('We’ll email your estimate or feedback. We confirm the final price with you before work or sale.') }}</p>
+      </form>
     </div>
   </section>
 {% endblock %}

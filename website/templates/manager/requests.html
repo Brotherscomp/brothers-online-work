@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Device requests | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="manager-panel">
+    <div class="manager-heading">
+      <div>
+        <p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p>
+        <h1>{{ tr('Device quote and repair requests') }}</h1>
+        <p>{{ tr('Review each brand and device detail, then send the customer your price estimate or feedback.') }}</p>
+      </div>
+      <form method="post" action="{{ url_for('manager.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button>
+      </form>
+    </div>
+    {% for device_request in device_requests %}
+      <article class="manager-request-card" id="request-{{ device_request.id }}">
+        <div class="manager-request-heading">
+          <div>
+            <h2>#{{ device_request.id }} · {{ device_request.brand }} {{ device_request.model or '' }}</h2>
+            <p>{{ device_request.created_at }} · {{ tr('New device purchase') if device_request.request_type == 'purchase' else tr('Device repair') }} · {{ tr(device_request.status) }}</p>
+          </div>
+          {% if device_request.response_sent_at %}
+            <span class="request-state request-state-sent">{{ tr('Feedback emailed') }}</span>
+          {% elif device_request.feedback or device_request.quote_cents %}
+            <span class="request-state request-state-pending">{{ tr('Feedback not yet emailed') }}</span>
+          {% else %}
+            <span class="request-state">{{ tr('Needs review') }}</span>
+          {% endif %}
+        </div>
+        <dl class="manager-request-details">
+          <div><dt>{{ tr('Customer') }}</dt><dd>{{ device_request.customer_name }}</dd></div>
+          <div><dt>{{ tr('Email Address') }}</dt><dd><a href="mailto:{{ device_request.email }}">{{ device_request.email }}</a></dd></div>
+          <div><dt>{{ tr('Phone') }}</dt><dd>{{ device_request.phone or tr('Not provided') }}</dd></div>
+          <div><dt>{{ tr('Device type') }}</dt><dd>{{ tr(device_request.device_type) }}</dd></div>
+          <div><dt>{{ tr('Brand') }}</dt><dd>{{ device_request.brand }}</dd></div>
+          <div><dt>{{ tr('Model') }}</dt><dd>{{ device_request.model or tr('Not provided') }}</dd></div>
+          {% if device_request.budget_cents %}
+            <div><dt>{{ tr('Customer budget') }}</dt><dd>{{ device_request.budget_cents | money }}</dd></div>
+          {% endif %}
+          <div class="manager-request-full"><dt>{{ tr('Customer details') }}</dt><dd>{{ device_request.details }}</dd></div>
+        </dl>
+        <form class="manager-feedback-form" method="post" action="{{ url_for('manager.send_feedback', request_id=device_request.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="device-form-row">
+            <label class="contact-field">{{ tr('Status') }}
+              <select name="status" required>
+                {% for status in request_statuses %}
+                  {% set selected_status = 'Quote sent' if device_request.status == 'Received' and not device_request.feedback and not device_request.quote_cents else device_request.status %}
+                  <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ tr(status) }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="contact-field">{{ tr('Estimated price in ETB (optional)') }}
+              <input type="number" name="quote_etb" min="0.01" max="100000000" step="0.01" inputmode="decimal" value="{% if device_request.quote_cents %}{{ '%.2f'|format(device_request.quote_cents / 100) }}{% endif %}">
+            </label>
+          </div>
+          <label class="contact-field">{{ tr('Feedback for the customer') }}
+            <textarea name="feedback" rows="4" maxlength="5000" placeholder="{{ tr('Write the estimate details, repair findings, or next steps...') }}">{{ device_request.feedback }}</textarea>
+          </label>
+          <button class="contact-submit" type="submit">{{ tr('Save and email feedback') }}</button>
+          <p class="manager-response-note">
+            {% if device_request.response_sent_at %}
+              {{ tr('Last emailed') }}: {{ device_request.response_sent_at }}
+            {% elif device_request.feedback or device_request.quote_cents %}
+              {{ tr('This response is saved and waiting to be emailed.') }}
+            {% else %}
+              {{ tr('The customer will receive this by email when you send it.') }}
+            {% endif %}
+          </p>
+        </form>
+      </article>
+    {% else %}
+      <div class="manager-empty-state">
+        <h2>{{ tr('No device requests yet') }}</h2>
+        <p>{{ tr('New purchase and repair requests from the shop will appear here.') }}</p>
+      </div>
+    {% endfor %}
+  </section>
+{% endblock %}

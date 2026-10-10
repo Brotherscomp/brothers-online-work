@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Request received | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="request-received">
+    <p class="eyebrow">{{ tr('DEVICE REQUEST') }}</p>
+    <h1>{{ tr('Thank you — we received your request.') }}</h1>
+    <p>{{ tr('Request number:') }} <strong>#{{ request_id }}</strong></p>
+    {% if manager_notified %}
+      <p>{{ tr('Our team has been notified. We will review your brand and details, then email you with an estimate or repair feedback.') }}</p>
+      {% if confirmation_sent %}
+        <p>{{ tr('A confirmation was sent to') }} <strong>{{ customer_email }}</strong>.</p>
+      {% else %}
+        <p class="request-warning">{{ tr('We could not send the confirmation email. Please save your request number.') }}</p>
+      {% endif %}
+    {% else %}
+      <p class="request-warning">{{ tr('Your request was saved, but our team could not be notified by email. Please call us and give your request number.') }}</p>
+    {% endif %}
+    <p>{{ tr('We confirm the final price with you before work or sale.') }}</p>
+    <div class="request-received-actions">
+      <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Back to the shop') }}</a>
+      <a href="tel:0909847775">0909847775</a>
+    </div>
+  </section>
+{% endblock %}

@@ -17,6 +17,8 @@ def create_app():
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME']).strip()
     app.config['CONTACT_RECIPIENT'] = os.environ.get('CONTACT_RECIPIENT', 'yazezewkassa@gmail.com').strip()
+    app.config['DEVICE_REQUEST_RECIPIENT'] = 'yazezewkassa@gmail.com'
+    app.config['ADMIN_PANEL_PASSWORD'] = os.environ.get('ADMIN_PANEL_PASSWORD', '')
     app.jinja_env.filters['money'] = lambda cents: (
         f"ብር {cents / 100:,.2f}" if get_language() == 'am' else f"ETB {cents / 100:,.2f}"
     )
@@ -26,8 +28,11 @@ def create_app():
     app.config['DATABASE'] = os.path.join(app.instance_path, 'users.sqlite3')
     from .views import views
     from .authss import auth
+    from .manager import manager, csrf_token
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(manager, url_prefix='/manager')
+    app.jinja_env.globals['csrf_token'] = csrf_token
 
     from .models import init_db
     with app.app_context():

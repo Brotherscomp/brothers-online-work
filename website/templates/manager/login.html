@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Manager sign in | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="manager-panel">
+    <p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p>
+    <h1>{{ tr('Manager sign in') }}</h1>
+    {% if password_is_configured %}
+      <p>{{ tr('Sign in to review device requests and email quotes or repair feedback to customers.') }}</p>
+      <form class="manager-login-form" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="contact-field" for="manager-password">{{ tr('Manager password') }}
+          <input id="manager-password" type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button class="contact-submit" type="submit">{{ tr('Sign in') }}</button>
+      </form>
+    {% else %}
+      <p>{{ tr('The manager page is not active yet. Set ADMIN_PANEL_PASSWORD in the app environment to protect manager access.') }}</p>
+      <a href="{{ url_for('views.home') }}">{{ tr('Back to the shop') }}</a>
+    {% endif %}
+  </section>
+{% endblock %}

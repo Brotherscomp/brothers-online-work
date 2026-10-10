@@ -57,6 +57,24 @@ def init_db():
                 unit_price_cents INTEGER NOT NULL,
                 quantity INTEGER NOT NULL CHECK (quantity > 0)
             );
+            CREATE TABLE IF NOT EXISTS device_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT NOT NULL DEFAULT '',
+                request_type TEXT NOT NULL,
+                device_type TEXT NOT NULL,
+                brand TEXT NOT NULL,
+                model TEXT NOT NULL DEFAULT '',
+                details TEXT NOT NULL,
+                budget_cents INTEGER,
+                language TEXT NOT NULL DEFAULT 'en',
+                status TEXT NOT NULL DEFAULT 'Received',
+                quote_cents INTEGER,
+                feedback TEXT NOT NULL DEFAULT '',
+                response_sent_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
         ''')
         columns = {row['name'] for row in connection.execute('PRAGMA table_info(products)')}
         if 'category' not in columns:
@@ -67,7 +85,7 @@ def init_db():
             connection.execute("ALTER TABLE products ADD COLUMN pricing_kind TEXT NOT NULL DEFAULT 'fixed'")
 
         # Hide the starter demo catalog from earlier versions of the app.
-        connection.execute("UPDATE products SET active = 0 WHERE name IN ('Everyday T-Shirt', 'Canvas Tote Bag', 'Ceramic Coffee Mug')")
+        connection.execute("UPDATE products SET active = 0 WHERE name IN ('Everyday T-Shirt', 'Canvas Tote Bag', 'Ceramic Coffee Mug', 'National ID print and update')")
 
         offerings = [
             ('Laptop computers', 'New and used computer models. Price depends on brand, specifications, and condition; ask us to confirm the exact model.', 7900000, '💻', 'Computers', 'each', 'from'),
@@ -75,12 +93,16 @@ def init_db():
             ('Computer repair: cooling service', 'Internal cleaning and thermal service. Replacement parts, if needed, are quoted separately.', 120000, '🧰', 'Computers', 'device', 'from'),
             ('Smartphones', 'Entry-level smartphones. Exact model, memory, warranty, and availability determine the final price.', 1420000, '📱', 'Mobile Phones', 'each', 'from'),
             ('Mobile phone repair', 'Screen repair starting price for basic models. Final price depends on the phone model and replacement part.', 280000, '🔧', 'Mobile Phones', 'device', 'from'),
+            ('Mobile phone software repair', 'Software troubleshooting, updates, reset support, and basic setup. Data backup and paid software licenses are separate.', 20000, '📲', 'Mobile Phones', 'device', 'from'),
             ('Printers', 'Home and small-office printers. Price depends on model, features, and current stock.', 4025000, '🖨️', 'Printers', 'each', 'from'),
+            ('Used printer and computer buying and selling', 'We buy and sell used printers and computers. The final value depends on the model, condition, specifications, and included accessories.', 500000, '♻️', 'Printers', 'each', 'from'),
             ('Printer inspection and repair', 'Initial printer inspection and basic service. Parts and complex repairs are quoted before work begins.', 50000, '🪛', 'Printers', 'device', 'from'),
             ('Black-and-white printing', 'A4 document printing on standard paper.', 1000, '📄', 'Print & Copy', 'page', 'fixed'),
             ('Color printing', 'A4 color document printing on standard paper. Photo paper and larger formats cost extra.', 2000, '🖨️', 'Print & Copy', 'page', 'fixed'),
             ('Photocopying', 'A4 black-and-white photocopy on standard paper.', 1000, '📑', 'Print & Copy', 'page', 'fixed'),
             ('A4 laminating', 'A4 document lamination. Larger sizes and special pouches are priced separately.', 2000, '🪪', 'Print & Copy', 'page', 'fixed'),
+            ('National ID print', 'National ID document printing service.', 35000, '🪪', 'Print & Copy', 'service', 'fixed'),
+            ('National ID update', 'Assistance with updating National ID details online. Official government fees are not included.', 25000, '📝', 'Print & Copy', 'service', 'fixed'),
             ('Passport application and appointment assistance', 'Help preparing and submitting an online passport application and appointment request. Government passport fees are not included; appointment availability is controlled by the relevant authority.', 50000, '🛂', 'Online Form Assistance', 'application', 'fixed'),
             ('DV registration form assistance', 'Help preparing a Diversity Visa entry during the official registration period. This is an assistance fee only; entry submission is free through the U.S. government. No selection or visa outcome is guaranteed.', 50000, '📝', 'Online Form Assistance', 'entry', 'fixed'),
         ]
@@ -171,3 +193,54 @@ def place_order(customer_name, email, address, cart, user_id=None):
                 (order_id, product['id'], product['name'], product['price_cents'], quantity),
             )
         return order_id, total_cents
+
+
+def create_device_request(
+    customer_name, email, phone, request_type, device_type, brand, model,
+    details, budget_cents, language,
+):
+    with get_db_connection() as connection:
+        cursor = connection.execute(
+            '''INSERT INTO device_requests
+               (customer_name, email, phone, request_type, device_type, brand,
+                model, details, budget_cents, language)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (
+                customer_name, email, phone, request_type, device_type, brand,
+                model, details, budget_cents, language,
+            ),
+        )
+        return cursor.lastrowid
+
+
+def get_device_requests():
+    with get_db_connection() as connection:
+        return connection.execute(
+            'SELECT * FROM device_requests ORDER BY created_at DESC, id DESC'
+        ).fetchall()
+
+
+def get_device_request(request_id):
+    with get_db_connection() as connection:
+        return connection.execute(
+            'SELECT * FROM device_requests WHERE id = ?', (request_id,)
+        ).fetchone()
+
+
+def save_device_request_response(request_id, status, quote_cents, feedback):
+    with get_db_connection() as connection:
+        cursor = connection.execute(
+            '''UPDATE device_requests
+               SET status = ?, quote_cents = ?, feedback = ?, response_sent_at = NULL
+               WHERE id = ?''',
+            (status, quote_cents, feedback, request_id),
+        )
+        return cursor.rowcount > 0
+
+
+def mark_device_request_response_sent(request_id):
+    with get_db_connection() as connection:
+        connection.execute(
+            'UPDATE device_requests SET response_sent_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (request_id,),
+        )

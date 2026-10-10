@@ -7,6 +7,16 @@
     <h1>{{ tr('Thanks! We received your request.') }}</h1>
     <p>{{ tr('Request number:') }} <strong>#{{ order_id }}</strong>.</p>
     <p>{{ tr('Estimated total:') }} <strong>{{ total_cents | money }}</strong></p>
+    {% if manager_notified %}
+      <p>{{ tr('Our team has been notified of your order request.') }}</p>
+    {% else %}
+      <p class="request-warning">{{ tr('Your request was saved, but our team could not be notified by email. Please call us and give your request number.') }}</p>
+    {% endif %}
+    {% if confirmation_sent %}
+      <p>{{ tr('A confirmation was sent to') }} <strong>{{ customer_email }}</strong>.</p>
+    {% else %}
+      <p class="request-warning">{{ tr('We could not send the confirmation email. Please save your request number.') }}</p>
+    {% endif %}
     <p class="muted">{{ tr('We’ll confirm availability and final pricing with you. No payment has been taken.') }}</p>
     <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Back to the shop') }}</a>
   </section>

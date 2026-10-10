@@ -15,30 +15,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     nav.addEventListener('click', (event) => {
       if (event.target.closest('a')) {
-        nav.classList.remove('is-open');
-        navToggle.setAttribute('aria-expanded', 'false');
-        navToggle.setAttribute('aria-label', isAmharic ? 'ማውጫውን ክፈት' : 'Open navigation');
+        closeNavigation();
       }
+    });
+
+    const closeNavigation = () => {
+      nav.classList.remove('is-open');
+      navToggle.setAttribute('aria-expanded', 'false');
+      navToggle.setAttribute('aria-label', isAmharic ? 'ማውጫውን ክፈት' : 'Open navigation');
+    };
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeNavigation();
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 760) closeNavigation();
     });
   }
 
   const signUpForm = document.querySelector('#sign-up-form');
-  if (!signUpForm) return;
+  if (signUpForm) {
+    const password = signUpForm.querySelector('#password');
+    const confirmation = signUpForm.querySelector('#confirm_password');
+    const error = signUpForm.querySelector('#password-error');
 
-  const password = signUpForm.querySelector('#password');
-  const confirmation = signUpForm.querySelector('#confirm_password');
-  const error = signUpForm.querySelector('#password-error');
+    signUpForm.addEventListener('submit', (event) => {
+      const passwordsMatch = password.value === confirmation.value;
+      error.hidden = passwordsMatch;
+      if (!passwordsMatch) {
+        event.preventDefault();
+        confirmation.focus();
+      }
+    });
 
-  signUpForm.addEventListener('submit', (event) => {
-    const passwordsMatch = password.value === confirmation.value;
-    error.hidden = passwordsMatch;
-    if (!passwordsMatch) {
-      event.preventDefault();
-      confirmation.focus();
-    }
-  });
+    confirmation.addEventListener('input', () => {
+      error.hidden = true;
+    });
+  }
 
-  confirmation.addEventListener('input', () => {
-    error.hidden = true;
-  });
+  const deviceRequestType = document.querySelector('#device-request-type');
+  const deviceDetailsField = document.querySelector('.device-details-field');
+  const deviceDetailsLabel = document.querySelector('.device-details-label');
+  if (deviceRequestType && deviceDetailsField && deviceDetailsLabel) {
+    const updateDeviceDetailsLabel = () => {
+      deviceDetailsLabel.textContent = deviceRequestType.value === 'repair'
+        ? deviceDetailsField.dataset.repairLabel
+        : deviceDetailsField.dataset.purchaseLabel;
+    };
+    deviceRequestType.addEventListener('change', updateDeviceDetailsLabel);
+    updateDeviceDetailsLabel();
+  }
 });
