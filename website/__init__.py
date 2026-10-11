@@ -24,8 +24,13 @@ def create_app():
     )
     app.jinja_env.globals['tr'] = translate
     app.jinja_env.globals['get_language'] = get_language
-    os.makedirs(app.instance_path, exist_ok=True)
-    app.config['DATABASE'] = os.path.join(app.instance_path, 'users.sqlite3')
+    database_url = os.environ.get('DATABASE_URL', '').strip()
+    if database_url:
+        app.config['DATABASE_URL'] = database_url
+    else:
+        database_path = os.environ.get('DATABASE_PATH') or os.path.join(app.instance_path, 'users.sqlite3')
+        os.makedirs(os.path.dirname(os.path.abspath(database_path)), exist_ok=True)
+        app.config['DATABASE'] = database_path
     from .views import views
     from .authss import auth
     from .manager import manager, csrf_token

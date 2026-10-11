@@ -1,9 +1,7 @@
-import sqlite3
-
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .models import create_user, find_user_by_email
+from .models import create_user, find_user_by_email, is_integrity_error
 from .translations import translate
 
 auth = Blueprint('auth', __name__)
@@ -67,7 +65,9 @@ def sign_up():
         else:
             try:
                 create_user(email, first_name, generate_password_hash(password))
-            except sqlite3.IntegrityError:
+            except Exception as error:
+                if not is_integrity_error(error):
+                    raise
                 flash(translate('An account with that email already exists.'), 'error')
             else:
                 flash(translate('Account created. Please log in.'), 'success')
