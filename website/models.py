@@ -363,7 +363,14 @@ def place_order(customer_name, email, address, cart, user_id=None, payment_metho
     with get_db_connection() as connection:
         order_lines = []
         total_cents = 0
-        for product_id, quantity in cart.items():
+        for raw_product_id, raw_quantity in cart.items():
+            try:
+                product_id = int(raw_product_id)
+                quantity = int(raw_quantity)
+            except (TypeError, ValueError):
+                raise ValueError('One or more items are unavailable in the requested quantity.') from None
+            if product_id < 1 or quantity < 1:
+                raise ValueError('One or more items are unavailable in the requested quantity.')
             product = connection.execute(
                 'SELECT id, name, price_cents, stock, pricing_kind FROM products WHERE id = ? AND active = 1',
                 (product_id,),
