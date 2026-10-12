@@ -84,6 +84,7 @@ AMHARIC = {
     'CBE account number': 'የCBE ሂሳብ ቁጥር',
     'Abay Bank account number': 'የአባይ ባንክ ሂሳብ ቁጥር',
     'BOA account number': 'የBOA ሂሳብ ቁጥር',
+    'Account holder': 'የሂሳቡ ባለቤት',
     'Copy number': 'ቁጥሩን ቅዳ',
     'Copy request number': 'የጥያቄ ቁጥሩን ቅዳ',
     'Copied': 'ተቀድቷል',

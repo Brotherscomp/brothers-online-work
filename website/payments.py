@@ -18,21 +18,25 @@ PAYMENT_DETAILS = {
         'provider': 'Telebirr',
         'account_label': 'Telebirr number',
         'account_number': '0909847775',
+        'account_holder': 'Yazezew Kassa',
     },
     'cbe': {
         'provider': 'Commercial Bank of Ethiopia (CBE)',
         'account_label': 'CBE account number',
         'account_number': '1000226159111',
+        'account_holder': 'Yazezew Kassa',
     },
     'abay': {
         'provider': 'Abay Bank',
         'account_label': 'Abay Bank account number',
         'account_number': '2931017252653013',
+        'account_holder': 'Yazezew Kassa',
     },
     'boa': {
         'provider': 'Bank of Abyssinia (BOA)',
         'account_label': 'BOA account number',
         'account_number': '9958396',
+        'account_holder': 'Yazezew Kassa',
     },
 }
 

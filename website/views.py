@@ -442,6 +442,7 @@ def checkout():
                     '',
                     'Manual transfer details:',
                     f"{transfer_details['provider']} — {transfer_details['account_label']}: {transfer_details['account_number']}",
+                    f"Account holder: {transfer_details['account_holder']}",
                     f'Wait for us to confirm availability and the final amount before transferring. Use request #{order_id} as the transfer reference.',
                     'After paying, reply to this email with the transaction reference so we can verify it manually. Never send your PIN or one-time code.',
                     'Before confirming a transfer, check that the recipient name shown in your payment app matches the shop.',

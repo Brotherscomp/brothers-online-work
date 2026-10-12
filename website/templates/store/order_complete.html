@@ -16,6 +16,7 @@
           <div><span>{{ tr(payment_details.account_label) }} · {{ tr(payment_details.provider) }}</span><code>{{ payment_details.account_number }}</code></div>
           <button class="payment-copy-button" type="button" data-copy-text="{{ payment_details.account_number }}" data-copy-label="{{ tr('Copy number') }}" data-copied-label="{{ tr('Copied') }}" data-copy-failed-label="{{ tr('Copy unavailable') }}">{{ tr('Copy number') }}</button>
         </div>
+        <p class="payment-account-holder"><span>{{ tr('Account holder') }}</span><strong>{{ payment_details.account_holder }}</strong></p>
         <div class="payment-account-row payment-reference-row">
           <div><span>{{ tr('Transfer note / reference') }}</span><code>#{{ order_id }}</code></div>
           <button class="payment-copy-button" type="button" data-copy-text="#{{ order_id }}" data-copy-label="{{ tr('Copy request number') }}" data-copied-label="{{ tr('Copied') }}" data-copy-failed-label="{{ tr('Copy unavailable') }}">{{ tr('Copy request number') }}</button>

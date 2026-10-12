@@ -123,6 +123,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .product-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 2rem; }
 .detail-price { font-size: 1.5rem; font-weight: 800; }
 .cart-lines { border-top: 1px solid #e3e9f1; }
+.cart-page { width: min(100%, 56rem); margin-inline: auto; }
 .cart-line { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 1.25rem; padding: 1rem 0; border-bottom: 1px solid #e3e9f1; }
 .cart-product { display: flex; align-items: center; gap: 0.8rem; }
 .cart-emoji { font-size: 2.2rem; }
@@ -147,6 +148,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .payment-account-row > div { display: grid; gap: 0.3rem; min-width: 0; }
 .payment-account-row span { color: #53685d; font-size: 0.82rem; }
 .payment-account-row code { overflow-wrap: anywhere; color: #173f35; font-size: 1rem; font-weight: 800; }
+.payment-account-holder { display: flex; flex-wrap: wrap; gap: 0.3rem 0.55rem; margin: 0.65rem 0; color: #43584e; }
+.payment-account-holder span { color: #53685d; font-size: 0.82rem; }
 .payment-copy-button { flex: 0 0 auto; padding: 0.55rem 0.75rem; border: 1px solid #a9c9b6; border-radius: 0.5rem; color: #175b4c; background: #f5fbf7; font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
 .payment-reference-row { margin-top: 0.55rem; }
 .payment-instructions-success { max-width: 38rem; margin: 1.5rem auto; }
