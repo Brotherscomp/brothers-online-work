@@ -5,7 +5,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from .authss import _normalize_email, valid_auth_csrf_token
 from .emailing import MailConfigurationError, MailDeliveryError, send_email
 from .models import create_device_request, get_product, get_products, get_products_by_ids, place_order
-from .payments import PAYMENT_METHODS
+from .payments import PAYMENT_DETAILS, PAYMENT_METHODS
 from .translations import get_language, translate
 
 views = Blueprint('views', __name__)
@@ -167,7 +167,8 @@ def contact():
 @views.route('/device-request', methods=['POST'])
 def device_request():
     if not valid_auth_csrf_token():
-        abort(400)
+        flash(translate('Your form session expired. Please refresh the page and submit your request again.'), 'error')
+        return redirect(url_for('views.home') + '#device-request')
     home_request = redirect(url_for('views.home') + '#device-request')
     if request.form.get('website', '').strip():
         return home_request
@@ -435,6 +436,16 @@ def checkout():
                 '0909847775',
                 'yazezewkassa@gmail.com',
             ])
+            transfer_details = PAYMENT_DETAILS.get(payment_method)
+            if transfer_details:
+                confirmation_body += '\n' + '\n'.join([
+                    '',
+                    'Manual transfer details:',
+                    f"{transfer_details['provider']} — {transfer_details['account_label']}: {transfer_details['account_number']}",
+                    f'Wait for us to confirm availability and the final amount before transferring. Use request #{order_id} as the transfer reference.',
+                    'After paying, reply to this email with the transaction reference so we can verify it manually. Never send your PIN or one-time code.',
+                    'Before confirming a transfer, check that the recipient name shown in your payment app matches the shop.',
+                ])
             confirmation_sent = False
             try:
                 send_email(
@@ -458,6 +469,7 @@ def checkout():
                 customer_email=email,
                 payment_method=payment_method,
                 payment_method_label=dict(PAYMENT_METHODS)[payment_method],
+                payment_details=PAYMENT_DETAILS.get(payment_method),
             )
 
     return render_template(
@@ -468,4 +480,5 @@ def checkout():
         customer_email=session.get('email', ''),
         payment_methods=PAYMENT_METHODS,
         selected_payment_method=request.form.get('payment_method', 'cash_pickup'),
+        payment_details=PAYMENT_DETAILS,
     )

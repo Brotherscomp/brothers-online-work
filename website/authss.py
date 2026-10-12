@@ -153,6 +153,7 @@ def sign_up():
                     delete_email_verification_token(token_hash)
                     current_app.logger.exception('A customer email verification message could not be delivered.')
                     flash(translate('Your account is saved but not active yet. We could not send the confirmation. Try sending it again.'), 'error')
+                    session['pending_verification_email'] = email
                     return redirect(url_for('auth.verify_email_resend'))
                 flash(translate('Check your email for a link to confirm your account.'), 'success')
                 return redirect(url_for('auth.login'))
@@ -191,7 +192,9 @@ def verify_email_resend():
         if not email:
             flash(translate('Enter a valid email address.'), 'error')
             return render_template('auth/verify_email_resend.html', form_email=request.form.get('email', '').strip())
+        session['pending_verification_email'] = email
         user = find_user_by_email(email)
+        delivery_failed = False
         if user and not user['email_verified']:
             token = secrets.token_urlsafe(32)
             token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
@@ -208,9 +211,17 @@ def verify_email_resend():
             except (MailConfigurationError, MailDeliveryError):
                 delete_email_verification_token(token_hash)
                 current_app.logger.exception('A customer email verification message could not be delivered.')
-        flash(translate('If the address has an unconfirmed account, a confirmation link will be sent.'), 'success')
+                delivery_failed = True
+        if delivery_failed:
+            flash(translate('The confirmation email could not be delivered. Check the email service settings or try again later. You can also call 0909847775.'), 'error')
+        else:
+            flash(translate('If the address has an unconfirmed account, a confirmation link will be sent.'), 'success')
+            session.pop('pending_verification_email', None)
         return redirect(url_for('auth.verify_email_resend'))
-    return render_template('auth/verify_email_resend.html')
+    return render_template(
+        'auth/verify_email_resend.html',
+        form_email=session.pop('pending_verification_email', ''),
+    )
 
 
 @auth.route('/password-reset', methods=['GET', 'POST'])

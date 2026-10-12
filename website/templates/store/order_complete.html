@@ -8,6 +8,21 @@
     <p>{{ tr('Request number:') }} <strong>#{{ order_id }}</strong>.</p>
     <p>{{ tr('Estimated total:') }} <strong>{{ total_cents | money }}</strong></p>
     <p>{{ tr('Payment preference:') }} <strong>{{ tr(payment_method_label) }}</strong></p>
+    {% if payment_details %}
+      <section class="payment-instructions payment-instructions-success" aria-labelledby="payment-next-step-title">
+        <h2 id="payment-next-step-title">{{ tr('Transfer after we confirm your order') }}</h2>
+        <p>{{ tr('No payment was taken. Wait for our team to confirm availability and the final amount before transferring.') }}</p>
+        <div class="payment-account-row">
+          <div><span>{{ tr(payment_details.account_label) }} · {{ tr(payment_details.provider) }}</span><code>{{ payment_details.account_number }}</code></div>
+          <button class="payment-copy-button" type="button" data-copy-text="{{ payment_details.account_number }}" data-copy-label="{{ tr('Copy number') }}" data-copied-label="{{ tr('Copied') }}" data-copy-failed-label="{{ tr('Copy unavailable') }}">{{ tr('Copy number') }}</button>
+        </div>
+        <div class="payment-account-row payment-reference-row">
+          <div><span>{{ tr('Transfer note / reference') }}</span><code>#{{ order_id }}</code></div>
+          <button class="payment-copy-button" type="button" data-copy-text="#{{ order_id }}" data-copy-label="{{ tr('Copy request number') }}" data-copied-label="{{ tr('Copied') }}" data-copy-failed-label="{{ tr('Copy unavailable') }}">{{ tr('Copy request number') }}</button>
+        </div>
+        <p class="muted">{{ tr('Before sending, verify the recipient name shown in your payment app. If it does not match the shop, call 0909847775 first.') }}</p>
+      </section>
+    {% endif %}
     {% if manager_notified %}
       <p>{{ tr('Our team has been notified of your order request.') }}</p>
     {% else %}

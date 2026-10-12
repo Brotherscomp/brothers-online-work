@@ -66,4 +66,49 @@ document.addEventListener('DOMContentLoaded', () => {
     deviceRequestType.addEventListener('change', updateDeviceDetailsLabel);
     updateDeviceDetailsLabel();
   }
+
+  const paymentMethod = document.querySelector('#payment_method');
+  const paymentInstructions = document.querySelector('#payment-instructions');
+  const paymentPanels = document.querySelectorAll('.payment-method-details[data-payment-method]');
+  if (paymentMethod && paymentInstructions && paymentPanels.length) {
+    const updatePaymentDetails = () => {
+      let selectedPanel = false;
+      paymentPanels.forEach((panel) => {
+        const isSelected = panel.dataset.paymentMethod === paymentMethod.value;
+        panel.hidden = !isSelected;
+        selectedPanel = selectedPanel || isSelected;
+      });
+      paymentInstructions.hidden = !selectedPanel;
+    };
+    paymentMethod.addEventListener('change', updatePaymentDetails);
+    updatePaymentDetails();
+  }
+
+  document.querySelectorAll('.payment-copy-button[data-copy-text]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const text = button.dataset.copyText || '';
+      const originalLabel = button.dataset.copyLabel || button.textContent;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const temporaryInput = document.createElement('textarea');
+          temporaryInput.value = text;
+          temporaryInput.setAttribute('readonly', '');
+          temporaryInput.style.position = 'fixed';
+          temporaryInput.style.opacity = '0';
+          document.body.appendChild(temporaryInput);
+          temporaryInput.select();
+          const copied = document.execCommand('copy');
+          temporaryInput.remove();
+          if (!copied) throw new Error('Clipboard copy was unavailable.');
+        }
+        button.textContent = button.dataset.copiedLabel || 'Copied';
+        window.setTimeout(() => { button.textContent = originalLabel; }, 1800);
+      } catch (_error) {
+        button.textContent = button.dataset.copyFailedLabel || 'Copy unavailable';
+        window.setTimeout(() => { button.textContent = originalLabel; }, 1800);
+      }
+    });
+  });
 });

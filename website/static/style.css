@@ -140,6 +140,17 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .order-summary > p { display: flex; justify-content: space-between; gap: 1rem; }
 .order-success { text-align: center; padding: 2rem 0; }
 .success-mark { color: #16804a; font-size: 3rem; }
+.payment-instructions { margin: 0.6rem 0 0.8rem; padding: 1rem; border: 1px solid #b9d9ca; border-radius: 0.8rem; background: #f1f8f3; text-align: left; }
+.payment-instructions h2 { margin: 0 0 0.5rem; color: #174f42; font-size: 1.05rem; }
+.payment-method-details > p:first-child { margin: 0.65rem 0; }
+.payment-account-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem; border: 1px solid #d8e7dc; border-radius: 0.65rem; background: #fff; }
+.payment-account-row > div { display: grid; gap: 0.3rem; min-width: 0; }
+.payment-account-row span { color: #53685d; font-size: 0.82rem; }
+.payment-account-row code { overflow-wrap: anywhere; color: #173f35; font-size: 1rem; font-weight: 800; }
+.payment-copy-button { flex: 0 0 auto; padding: 0.55rem 0.75rem; border: 1px solid #a9c9b6; border-radius: 0.5rem; color: #175b4c; background: #f5fbf7; font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.payment-reference-row { margin-top: 0.55rem; }
+.payment-instructions-success { max-width: 38rem; margin: 1.5rem auto; }
+[hidden] { display: none !important; }
 
 @media (max-width: 760px) {
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -150,6 +161,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   .product-grid { grid-template-columns: 1fr; }
   .cart-line { grid-template-columns: 1fr auto; gap: 0.7rem; }
   .cart-line > strong { grid-column: 2; }
+  .payment-account-row { align-items: flex-start; flex-direction: column; }
 }
 
 /* Warka-inspired service storefront */

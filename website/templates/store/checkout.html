@@ -17,9 +17,23 @@
           <option value="{{ method }}" {% if selected_payment_method == method %}selected{% endif %}>{{ tr(label) }}</option>
         {% endfor %}
       </select>
-      <p class="muted">{{ tr('No online payment is collected. For Telebirr, CBE, Abay, or BOA, we will confirm your order and email transfer details before you pay.') }}</p>
-      <button type="submit">{{ tr('Submit request') }}</button>
-      <p class="muted">{{ tr('Submitting emails your request and cart details to our team, and we’ll email you a confirmation. We’ll confirm availability and final pricing before completing your order. No payment is collected here.') }}</p>
+      <p class="muted">{{ tr('Choose a payment method to see the transfer details. Do not transfer until we confirm availability and the final amount.') }}</p>
+      <section class="payment-instructions" id="payment-instructions" aria-live="polite" {% if selected_payment_method not in payment_details %}hidden{% endif %}>
+        <h2>{{ tr('Transfer details') }}</h2>
+        <p>{{ tr('Please wait for our team to confirm availability and the final amount before sending money.') }}</p>
+        {% for method, details in payment_details.items() %}
+          <div class="payment-method-details" data-payment-method="{{ method }}" {% if selected_payment_method != method %}hidden{% endif %}>
+            <p><strong>{{ tr(details.provider) }}</strong></p>
+            <div class="payment-account-row">
+              <div><span>{{ tr(details.account_label) }}</span><code>{{ details.account_number }}</code></div>
+              <button class="payment-copy-button" type="button" data-copy-text="{{ details.account_number }}" data-copy-label="{{ tr('Copy number') }}" data-copied-label="{{ tr('Copied') }}" data-copy-failed-label="{{ tr('Copy unavailable') }}">{{ tr('Copy number') }}</button>
+            </div>
+            <p class="muted">{{ tr('After we confirm your order, include your request number in the transfer note. Check the recipient name shown in your banking app before confirming the transfer.') }}</p>
+          </div>
+        {% endfor %}
+      </section>
+      <button type="submit">{{ tr('Place request and view payment details') }}</button>
+      <p class="muted">{{ tr('Submitting emails your request and cart details to our team, and we’ll email you a confirmation. This form does not collect or verify payment.') }}</p>
     </form>
     <aside class="order-summary">
       <h2>{{ tr('Order summary') }}</h2>
