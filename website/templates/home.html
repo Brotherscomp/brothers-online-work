@@ -74,6 +74,7 @@
                 <div class="product-buy-row">
                   <strong>{% if product.pricing_kind == 'from' %}{{ tr('From') }} {% endif %}{{ product.price_cents | money }}{% if product.unit_label != 'each' %}<small> / {{ tr(product.unit_label) }}</small>{% endif %}</strong>
                   <form method="post" action="{{ url_for('views.add_to_cart', product_id=product.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
                     <button type="submit" {% if product.stock < 1 %}disabled{% endif %}>
                       {% if product.stock < 1 %}{{ tr('Unavailable') }}{% else %}{{ tr('Add to request') }}{% endif %}
                     </button>
@@ -114,6 +115,7 @@
       </div>
       <div class="contact-layout">
         <form class="contact-form" id="contact-form" action="{{ url_for('views.contact') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
         <div class="contact-honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
         <div class="contact-form-row">
           <label class="contact-field">{{ tr('First Name') }}
@@ -169,6 +171,7 @@
         <p>{{ tr('Share the device brand and details. We’ll review them and email you an estimated price or repair feedback.') }}</p>
       </div>
       <form class="device-request-form" action="{{ url_for('views.device_request') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
         <div class="contact-honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
         <div class="device-form-row">
           <label class="contact-field">{{ tr('Your name') }}

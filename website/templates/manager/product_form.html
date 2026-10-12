@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit product' if product else 'Add product' }} | Store manager{% endblock %}
+{% block content %}
+<section class="manager-panel manager-app">{% include 'manager/_nav.html' %}<div><p class="eyebrow">STORE MANAGEMENT</p><h1>{{ 'Edit product' if product else 'Add a product' }}</h1><p>Changes are saved to the app database and update the customer catalog.</p></div>
+  <form class="manager-edit-form" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="contact-field">Name<input name="name" maxlength="160" required value="{{ product.name if product else '' }}"></label>
+    <label class="contact-field">Description<textarea name="description" rows="4" maxlength="5000" required>{{ product.description if product else '' }}</textarea></label>
+    <div class="manager-form-grid"><label class="contact-field">Category<input name="category" maxlength="100" required value="{{ product.category if product else '' }}"></label><label class="contact-field">Icon / emoji<input name="emoji" maxlength="16" value="{{ product.emoji if product else '🛍️' }}"></label>
+      <label class="contact-field">Price in ETB<input name="price_etb" type="number" min="0" max="100000000" step="0.01" required value="{{ '%.2f'|format(product.price_cents / 100) if product else '' }}"></label><label class="contact-field">Available stock<input name="stock" type="number" min="0" max="100000000" step="1" required value="{{ product.stock if product else 0 }}"></label>
+      <label class="contact-field">Unit<select name="unit_label">{% for unit in ['each', 'device', 'page', 'service', 'application', 'entry'] %}<option value="{{ unit }}" {% if product and product.unit_label == unit or not product and unit == 'each' %}selected{% endif %}>{{ unit }}</option>{% endfor %}</select></label><label class="contact-field">Price display<select name="pricing_kind"><option value="fixed" {% if not product or product.pricing_kind == 'fixed' %}selected{% endif %}>Fixed price</option><option value="from" {% if product and product.pricing_kind == 'from' %}selected{% endif %}>Starting price</option></select></label>
+    </div><button class="contact-submit" type="submit">Save product</button>
+  </form>
+</section>
+{% endblock %}

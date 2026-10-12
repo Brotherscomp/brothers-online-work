@@ -4,6 +4,7 @@
   <h1>{{ tr('Log out') }}</h1>
   <p>{{ tr('Are you sure you want to log out?') }}</p>
   <form method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
     <button type="submit">{{ tr('Log out') }}</button>
   </form>
 {% endblock %}

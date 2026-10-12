@@ -4,6 +4,7 @@
   <h1>{{ tr('Your cart') }}</h1>
   {% if lines %}
     <form method="post" action="{{ url_for('views.update_cart') }}">
+      <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
       <div class="cart-lines">
         {% for line in lines %}
           <div class="cart-line">

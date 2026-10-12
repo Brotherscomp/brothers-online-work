@@ -3,10 +3,11 @@
 {% block content %}
   <h1>{{ tr('Create an account') }}</h1>
   <form id="sign-up-form" method="post" action="{{ url_for('auth.sign_up') }}">
+    <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
     <label for="email">{{ tr('Email') }}</label>
-    <input id="email" name="email" type="email" autocomplete="email" required>
+    <input id="email" name="email" type="email" autocomplete="email" value="{{ form_email|default('') }}" required>
     <label for="first_name">{{ tr('First name') }}</label>
-    <input id="first_name" name="first_name" type="text" autocomplete="given-name" required>
+    <input id="first_name" name="first_name" type="text" autocomplete="given-name" value="{{ form_first_name|default('') }}" required>
     <label for="password">{{ tr('Password') }}</label>
     <input id="password" name="password" type="password" autocomplete="new-password" required>
     <label for="confirm_password">{{ tr('Confirm password') }}</label>

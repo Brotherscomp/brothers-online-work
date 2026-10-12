@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email | Brothers-Online-Work{% endblock %}
+{% block content %}<section class="manager-panel"><h1>Confirm your email</h1><p>Use the button below to activate your account. The link can be used once.</p><form method="post" action="{{ url_for('auth.verify_email', token=token) }}"><input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}"><button class="contact-submit" type="submit">Confirm email address</button></form></section>{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Customers | Store manager{% endblock %}
+{% block content %}
+<section class="manager-panel manager-app">{% include 'manager/_nav.html' %}<div class="manager-heading"><div><p class="eyebrow">STORE MANAGEMENT</p><h1>Customers</h1><p>Customers are grouped by email from accounts, orders, and device requests.</p></div></div>
+  <form class="manager-search" method="get"><label>Find a customer<input name="q" value="{{ search }}" placeholder="Name or email"></label><button class="button-secondary" type="submit">Search</button></form>
+  <div class="manager-table-wrap"><table class="manager-table"><thead><tr><th>Customer</th><th>Orders</th><th>Paid order value</th><th>Last activity</th><th>Contact</th></tr></thead><tbody>{% for customer in customers %}<tr><td>{{ customer.customer_name }}<small>{{ customer.email }}</small></td><td>{{ customer.order_count }}</td><td>{{ customer.order_value_cents | money }}</td><td>{{ customer.last_activity }}</td><td><a href="mailto:{{ customer.email }}">Email</a></td></tr>{% else %}<tr><td colspan="5">No customers found.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

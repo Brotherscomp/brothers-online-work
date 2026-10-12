@@ -11,6 +11,7 @@
       <p class="detail-price">{% if product.pricing_kind == 'from' %}{{ tr('From') }} {% endif %}{{ product.price_cents | money }}{% if product.unit_label != 'each' %} / {{ tr(product.unit_label) }}{% endif %}</p>
       <p>{{ tr('Availability confirmed on request.') }}</p>
       <form method="post" action="{{ url_for('views.add_to_cart', product_id=product.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
         <button type="submit" {% if product.stock < 1 %}disabled{% endif %}>{{ tr('Add to request') }}</button>
       </form>
     </div>

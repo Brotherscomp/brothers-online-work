@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Store dashboard | Brothers-Online-Work{% endblock %}
+{% block content %}
+<section class="manager-panel manager-app">
+  {% include 'manager/_nav.html' %}
+  <div class="manager-heading"><div><p class="eyebrow">PRIVATE STORE AREA</p><h1>Store overview</h1><p>Live totals from the configured database. Sales include only orders marked paid.</p></div>
+    <form method="get" class="manager-filter"><label for="period">Sales period</label><select id="period" name="period" onchange="this.form.submit()"><option value="7d" {% if selected_period == '7d' %}selected{% endif %}>Last 7 days</option><option value="30d" {% if selected_period == '30d' %}selected{% endif %}>Last 30 days</option><option value="6m" {% if selected_period == '6m' %}selected{% endif %}>6 months</option><option value="12m" {% if selected_period == '12m' %}selected{% endif %}>12 months</option></select></form>
+  </div>
+  <div class="manager-stat-grid">
+    <article class="manager-stat"><span>Paid sales</span><strong>{{ data.totals.paid_sales_cents | money }}</strong><small>Verified as paid in orders</small></article>
+    <article class="manager-stat"><span>Orders</span><strong>{{ data.totals.order_count }}</strong><small>{{ data.totals.open_order_count }} open · {{ data.totals.cancelled_order_count }} cancelled</small></article>
+    <article class="manager-stat"><span>Customers</span><strong>{{ data.totals.customer_count }}</strong><small>Accounts and customer requests</small></article>
+    <article class="manager-stat"><span>Active products</span><strong>{{ data.totals.product_count }}</strong><small>{{ data.totals.low_stock_count }} at five units or less</small></article>
+    <article class="manager-stat"><span>Average paid order</span><strong>{{ data.totals.average_paid_order_cents | money }}</strong><small>Excludes cancelled and unpaid orders</small></article>
+  </div>
+  <div class="manager-dashboard-grid">
+    <section class="manager-card manager-chart-card"><div class="manager-card-heading"><div><h2>Paid sales</h2><p>Paid order amount for each selected period</p></div><strong>{{ data.totals.paid_sales_cents | money }}</strong></div>
+      <div class="sales-chart" role="img" aria-label="Paid sales by period">
+        {% for bucket in sales_buckets %}<div class="sales-bar-column"><span class="sales-bar-value">{% if bucket.value_cents %}{{ bucket.value_cents | money }}{% endif %}</span><span class="sales-bar" style="height: {{ bucket.height }}%"></span><small>{{ bucket.label }}</small></div>{% endfor %}
+      </div>
+    </section>
+    <section class="manager-card"><div class="manager-card-heading"><div><h2>Top products</h2><p>Paid order items</p></div><a href="{{ url_for('manager.products') }}">Manage</a></div>
+      {% for product in data.top_products %}<div class="manager-list-row"><span>{{ product.name }}<small>{{ product.units_sold }} sold</small></span><strong>{{ product.value_cents | money }}</strong></div>{% else %}<p class="muted">No paid product orders yet.</p>{% endfor %}
+    </section>
+    <section class="manager-card"><div class="manager-card-heading"><div><h2>Low stock</h2><p>Active physical items with 5 or fewer available</p></div><a href="{{ url_for('manager.products') }}">Update stock</a></div>
+      {% for product in data.low_stock_products %}<div class="manager-list-row"><span>{{ product.name }}<small>{{ product.unit_label }}</small></span><strong class="{% if product.stock == 0 %}stock-empty{% endif %}">{{ product.stock }} left</strong></div>{% else %}<p class="muted">No low-stock items.</p>{% endfor %}
+    </section>
+    <section class="manager-card"><div class="manager-card-heading"><div><h2>Popular categories</h2><p>Paid order value</p></div></div>
+      {% for category in data.top_categories %}<div class="manager-list-row"><span>{{ category.category }}</span><strong>{{ category.order_value_cents | money }}</strong></div>{% else %}<p class="muted">No paid category sales yet.</p>{% endfor %}
+    </section>
+    <section class="manager-card"><div class="manager-card-heading"><div><h2>Frequent customers</h2><p>Paid orders</p></div><a href="{{ url_for('manager.customers') }}">All customers</a></div>
+      {% for customer in data.top_customers %}<div class="manager-list-row"><span>{{ customer.customer_name }}<small>{{ customer.order_count }} orders</small></span><strong>{{ customer.paid_value_cents | money }}</strong></div>{% else %}<p class="muted">No paid orders yet.</p>{% endfor %}
+    </section>
+    <section class="manager-card"><div class="manager-card-heading"><div><h2>Order status</h2><p>Current order count by stage</p></div><a href="{{ url_for('manager.orders') }}">Manage orders</a></div>
+      {% for status_row in data.order_status_counts %}<div class="manager-list-row"><span>{{ status_row.status }}</span><strong>{{ status_row.order_count }}</strong></div>{% else %}<p class="muted">No orders yet.</p>{% endfor %}
+    </section>
+    <section class="manager-card"><div class="manager-card-heading"><div><h2>Recent device requests</h2><p>Purchase quotes and repair enquiries</p></div><a href="{{ url_for('manager.requests') }}">Review requests</a></div>
+      {% for device_request in data.recent_requests %}<div class="manager-list-row"><span>#{{ device_request.id }} · {{ device_request.customer_name }}<small>{{ device_request.brand }} · {{ device_request.request_type }}</small></span><strong>{{ device_request.status }}</strong></div>{% else %}<p class="muted">No device requests yet.</p>{% endfor %}
+    </section>
+  </div>
+  <section class="manager-card"><div class="manager-card-heading"><div><h2>Recent orders</h2><p>Latest requests from customers</p></div><a href="{{ url_for('manager.orders') }}">View all orders</a></div>
+    <div class="manager-table-wrap"><table class="manager-table"><thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Payment</th></tr></thead><tbody>
+      {% for order in data.recent_orders %}<tr><td>#{{ order.id }}<small>{{ order.created_at }}</small></td><td>{{ order.customer_name }}<small>{{ order.email }}</small></td><td>{% for item in data.recent_order_items[order.id] %}{{ item.quantity }} × {{ item.product_name }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td><td>{{ order.total_cents | money }}</td><td><span class="order-badge">{{ order.status }}</span></td><td>{{ order.payment_status }}</td></tr>{% else %}<tr><td colspan="6">No customer orders yet.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  <p class="manager-footnote">Database: {{ data.database_backend }} · Totals refresh when this page is opened.</p>
+</section>
+{% endblock %}

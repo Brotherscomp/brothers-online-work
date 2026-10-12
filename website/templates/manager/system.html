@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}System status | Store manager{% endblock %}
+{% block content %}
+<section class="manager-panel manager-app">{% include 'manager/_nav.html' %}<div><p class="eyebrow">OPERATIONS</p><h1>System status</h1><p>This page reports configuration presence only; it never displays secret values.</p></div>
+  <div class="manager-system-grid">
+    <article class="manager-stat"><span>Database</span><strong>{{ config.database_backend }}</strong><small>{{ 'Connected' if config.database_healthy else 'Not reachable' }} · {{ 'configured' if config.database_configured else 'not configured' }}</small></article>
+    <article class="manager-stat"><span>Email settings</span><strong>{{ 'Configured' if config.smtp_configured else 'Incomplete' }}</strong><small>SMTP credentials are not shown.</small></article>
+    <article class="manager-stat"><span>Manager access</span><strong>{{ 'Password set' if config.manager_password_configured else 'Not set' }}</strong><small>Set ADMIN_PANEL_PASSWORD in the hosting environment.</small></article>
+    <article class="manager-stat"><span>Secure cookies</span><strong>{{ 'Enabled' if config.secure_cookies else 'Off locally' }}</strong><small>Hosting should use HTTPS.</small></article>
+  </div>
+  <form class="manager-card manager-email-check" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="send_test_email"><h2>Check outgoing email</h2><p>Sends a test message to the configured contact address.</p><button class="button-secondary" type="submit">Send test email</button></form>
+  <section class="manager-card"><h2>Database backup reminder</h2><p>Use your PostgreSQL provider’s backup or export tools regularly. Keep an export outside the hosting account and confirm you can restore it to a separate database before relying on it.</p><p>Changing DATABASE_URL points the app at a database; it does not move records from local SQLite. Export and import existing records separately before switching live data.</p></section>
+</section>
+{% endblock %}

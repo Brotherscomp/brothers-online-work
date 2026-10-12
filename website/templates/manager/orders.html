@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Orders | Store manager{% endblock %}
+{% block content %}
+<section class="manager-panel manager-app">
+  {% include 'manager/_nav.html' %}
+  <div class="manager-heading"><div><p class="eyebrow">STORE MANAGEMENT</p><h1>Orders</h1><p>Confirm requests, update fulfillment, and record payment only after you verify it.</p></div></div>
+  <form class="manager-search" method="get"><label>Search by order, customer, or email<input name="q" value="{{ search }}" placeholder="Search orders"></label><label>Status<select name="status"><option value="">All statuses</option>{% for status in order_statuses %}<option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></label><button class="button-secondary" type="submit">Filter</button></form>
+  {% for order in orders %}
+    <article class="manager-order-card">
+      <div class="manager-order-top"><div><h2>Order #{{ order.id }} · {{ order.customer_name }}</h2><p><a href="mailto:{{ order.email }}">{{ order.email }}</a> · {{ order.created_at }}</p></div><strong>{{ order.total_cents | money }}</strong></div>
+      <p class="manager-order-address">{{ order.address or 'No delivery address or extra details provided.' }}</p>
+      <ul class="manager-order-items">{% for item in order_items[order.id] %}<li>{{ item.quantity }} × {{ item.product_name }} <span>{{ (item.unit_price_cents * item.quantity) | money }}</span></li>{% endfor %}</ul>
+      <div class="manager-order-meta"><span class="order-badge">{{ order.status }}</span><span>{{ payment_method_label(order.payment_method) }}</span><span>Payment: {{ order.payment_status }}</span></div>
+      <div class="manager-order-actions">
+        <form method="post" action="{{ url_for('manager.change_order_status', order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Order status<select name="status">{% for status in order_statuses %}<option value="{{ status }}" {% if order.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></label><button class="button-secondary" type="submit">Save status</button></form>
+        <form method="post" action="{{ url_for('manager.change_payment_status', order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Payment<select name="payment_status">{% for status in payment_statuses %}<option value="{{ status }}" {% if order.payment_status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></label><button class="button-secondary" type="submit">Save payment</button></form>
+      </div>
+      {% if order.payment_method in ['telebirr', 'cbe', 'abay', 'boa', 'transfer_after_confirmation'] and order.status in ['Confirmed', 'Preparing', 'Ready for pickup'] and order.payment_status != 'Paid' %}
+        <form class="payment-instructions-form" method="post" action="{{ url_for('manager.send_payment_instructions', order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Transfer details to email customer<textarea name="payment_instructions" rows="3" maxlength="2000" required placeholder="Enter only the payment details you have verified. These details will be emailed to the customer.">{{ order.payment_instructions }}</textarea></label><button class="button-secondary" type="submit">Save and email instructions</button><small>Payment is manual. Verify incoming funds yourself before changing payment status to Paid.</small></form>
+      {% endif %}
+    </article>
+  {% else %}<div class="manager-empty-state"><h2>No orders match</h2><p>New checkout requests will appear here.</p></div>{% endfor %}
+</section>
+{% endblock %}

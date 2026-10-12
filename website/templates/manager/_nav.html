@@ -1,0 +1,12 @@
+<nav class="manager-nav" aria-label="Manager dashboard">
+  <a href="{{ url_for('manager.dashboard') }}">Overview</a>
+  <a href="{{ url_for('manager.orders') }}">Orders</a>
+  <a href="{{ url_for('manager.products') }}">Products and stock</a>
+  <a href="{{ url_for('manager.customers') }}">Customers</a>
+  <a href="{{ url_for('manager.requests') }}">Device requests</a>
+  <a href="{{ url_for('manager.system') }}">System status</a>
+  <form method="post" action="{{ url_for('manager.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button-secondary" type="submit">Sign out</button>
+  </form>
+</nav>

@@ -7,6 +7,7 @@
     <h1>{{ tr('Thanks! We received your request.') }}</h1>
     <p>{{ tr('Request number:') }} <strong>#{{ order_id }}</strong>.</p>
     <p>{{ tr('Estimated total:') }} <strong>{{ total_cents | money }}</strong></p>
+    <p>{{ tr('Payment preference:') }} <strong>{{ tr(payment_method_label) }}</strong></p>
     {% if manager_notified %}
       <p>{{ tr('Our team has been notified of your order request.') }}</p>
     {% else %}

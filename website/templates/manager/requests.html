@@ -2,16 +2,13 @@
 {% block title %}{{ tr('Device requests | Brothers-Online-Work') }}{% endblock %}
 {% block content %}
   <section class="manager-panel">
+    {% include 'manager/_nav.html' %}
     <div class="manager-heading">
       <div>
         <p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p>
         <h1>{{ tr('Device quote and repair requests') }}</h1>
         <p>{{ tr('Review each brand and device detail, then send the customer your price estimate or feedback.') }}</p>
       </div>
-      <form method="post" action="{{ url_for('manager.logout') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button>
-      </form>
     </div>
     {% for device_request in device_requests %}
       <article class="manager-request-card" id="request-{{ device_request.id }}">

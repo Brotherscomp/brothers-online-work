@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Products and stock | Store manager{% endblock %}
+{% block content %}
+<section class="manager-panel manager-app">{% include 'manager/_nav.html' %}
+  <div class="manager-heading"><div><p class="eyebrow">STORE MANAGEMENT</p><h1>Products and stock</h1><p>Update prices, available stock, and catalog visibility.</p></div><a class="button-link" href="{{ url_for('manager.edit_product') }}">Add a product</a></div>
+  <div class="manager-table-wrap"><table class="manager-table"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Visibility</th><th>Actions</th></tr></thead><tbody>
+    {% for product in products %}<tr><td>{{ product.emoji }} {{ product.name }}<small>{{ product.description }}</small></td><td>{{ product.category }}</td><td>{% if product.pricing_kind == 'from' %}From {% endif %}{{ product.price_cents | money }} / {{ product.unit_label }}</td><td>{{ product.stock }}</td><td>{{ 'Visible' if product.active else 'Hidden' }}</td><td><div class="manager-table-actions"><a href="{{ url_for('manager.edit_product', product_id=product.id) }}">Edit</a><form method="post" action="{{ url_for('manager.toggle_product_visibility', product_id=product.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-button" type="submit">{{ 'Hide' if product.active else 'Show' }}</button></form></div></td></tr>{% else %}<tr><td colspan="6">No products have been added.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

@@ -566,3 +566,94 @@ main {
   .request-received-actions,
   .footer-meta { align-items: flex-start; flex-direction: column; }
 }
+
+/* Store manager dashboard, tables and customer account pages */
+.manager-app { max-width: 78rem; margin: 1.5rem auto 4rem; }
+.manager-nav { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .65rem; border: 1px solid #e1e8f2; border-radius: .85rem; background: #fff; }
+.manager-nav a, .manager-nav button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: .5rem .75rem; border-radius: .55rem; color: #294467; font-size: .83rem; font-weight: 650; text-decoration: none; }
+.manager-nav a:hover { background: #edf3ff; }
+.manager-nav form { display: block; width: auto; max-width: none; margin: 0 0 0 auto; }
+.manager-nav .button-secondary { min-height: 2.35rem; margin: 0; }
+.manager-stat-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .8rem; }
+.manager-stat { display: grid; gap: .45rem; min-width: 0; padding: 1rem; border: 1px solid #e2e9f3; border-radius: .85rem; background: #fff; }
+.manager-stat > span { color: #657792; font-size: .78rem; }
+.manager-stat > strong { color: #1e3557; font-size: clamp(1.15rem, 2vw, 1.65rem); overflow-wrap: anywhere; }
+.manager-stat > small { color: #7b89a0; font-size: .72rem; line-height: 1.45; }
+.manager-dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.manager-card { min-width: 0; padding: 1rem; border: 1px solid #e2e9f3; border-radius: .85rem; background: #fff; }
+.manager-card h2 { margin: 0; color: #20395d; font-size: 1rem; }
+.manager-card p { color: #6d7e96; font-size: .82rem; line-height: 1.55; }
+.manager-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .65rem; }
+.manager-card-heading p { margin: .25rem 0 0; }
+.manager-card-heading a { font-size: .8rem; }
+.manager-chart-card { grid-column: 1 / -1; }
+.sales-chart { display: flex; align-items: end; gap: .55rem; min-height: 12rem; padding: 1rem .25rem 0; overflow-x: auto; border-bottom: 1px solid #e8edf5; }
+.sales-bar-column { display: grid; flex: 0 0 2.4rem; grid-template-rows: 1.2rem 1fr 1.3rem; justify-items: center; align-items: end; min-width: 0; height: 10.2rem; }
+.sales-bar-value { max-width: 100%; color: #6e7e96; font-size: .58rem; overflow: hidden; white-space: nowrap; }
+.sales-bar { align-self: end; width: min(70%, 2rem); min-height: .25rem; border-radius: .45rem .45rem 0 0; background: linear-gradient(180deg, #6592ed, #3262c3); }
+.sales-bar-column small { align-self: end; color: #76849a; font-size: .67rem; }
+.manager-list-row { display: flex; justify-content: space-between; gap: .75rem; padding: .7rem 0; border-top: 1px solid #edf0f5; color: #334a68; font-size: .82rem; }
+.manager-list-row > span { min-width: 0; overflow-wrap: anywhere; }
+.manager-list-row small { display: block; margin-top: .2rem; color: #8491a4; font-size: .7rem; }
+.manager-list-row > strong { flex: none; color: #263f63; font-size: .78rem; }
+.manager-list-row .stock-empty { color: #b43d48; }
+.manager-filter, .manager-search { display: flex; align-items: end; flex-wrap: wrap; gap: .7rem; width: auto; max-width: none; margin: 0; }
+.manager-filter label, .manager-search label { display: grid; gap: .35rem; color: #52647d; font-size: .78rem; }
+.manager-filter select, .manager-search input, .manager-search select, .manager-order-actions select { min-height: 2.5rem; padding: .5rem .65rem; border: 1px solid #ccd6e4; border-radius: .5rem; color: #223955; background: white; }
+.manager-search { margin: 0 0 1rem; }
+.manager-search input { min-width: 15rem; }
+.manager-search .button-secondary { margin: 0; min-height: 2.5rem; }
+.manager-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #e4eaf2; border-radius: .7rem; }
+.manager-table { width: 100%; min-width: 44rem; border-collapse: collapse; background: #fff; font-size: .78rem; text-align: left; }
+.manager-table th, .manager-table td { padding: .8rem .75rem; border-bottom: 1px solid #edf0f4; vertical-align: top; }
+.manager-table th { color: #61738d; background: #f7f9fc; font-size: .7rem; font-weight: 700; }
+.manager-table td { color: #304663; }
+.manager-table td small { display: block; max-width: 19rem; margin-top: .25rem; color: #8290a3; overflow-wrap: anywhere; }
+.manager-table-actions { display: flex; gap: .7rem; white-space: nowrap; }
+.manager-table-actions form { width: auto; max-width: none; margin: 0; }
+.text-button { padding: 0; border: 0; color: #315fbb; background: transparent; font: inherit; cursor: pointer; }
+.order-badge { display: inline-flex; padding: .25rem .55rem; border-radius: 999px; color: #315a9e; background: #edf3ff; font-size: .7rem; white-space: nowrap; }
+.manager-order-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid #dfe7f2; border-radius: .85rem; background: white; }
+.manager-order-top { display: flex; justify-content: space-between; gap: 1rem; }
+.manager-order-top h2 { margin: 0; color: #20395d; font-size: 1rem; }
+.manager-order-top p, .manager-order-address { margin: .35rem 0 0; color: #77859a; font-size: .78rem; overflow-wrap: anywhere; }
+.manager-order-top > strong { color: #20395d; white-space: nowrap; }
+.manager-order-items { display: grid; gap: .35rem; margin: 0; padding: .7rem .9rem; border-radius: .55rem; background: #f7f9fc; list-style: none; color: #415671; font-size: .8rem; }
+.manager-order-items li { display: flex; justify-content: space-between; gap: 1rem; }
+.manager-order-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; color: #677990; font-size: .76rem; }
+.manager-order-actions { display: flex; flex-wrap: wrap; gap: .8rem; }
+.manager-order-actions form { display: flex; align-items: end; flex-wrap: wrap; gap: .5rem; width: auto; max-width: none; margin: 0; }
+.manager-order-actions label { display: grid; gap: .3rem; color: #63748b; font-size: .73rem; }
+.manager-order-actions .button-secondary { margin: 0; min-height: 2.5rem; }
+.payment-instructions-form, .manager-email-check { display: grid; gap: .65rem; width: 100%; max-width: none; margin: 0; padding-top: .8rem; border-top: 1px solid #e7ecf3; }
+.payment-instructions-form label { display: grid; gap: .4rem; color: #52647d; font-size: .78rem; }
+.payment-instructions-form textarea { width: 100%; min-height: 5rem; padding: .65rem; border: 1px solid #ccd6e4; border-radius: .5rem; }
+.payment-instructions-form .button-secondary { justify-self: start; margin: 0; }
+.payment-instructions-form small { color: #7a8799; }
+.manager-edit-form { display: grid; gap: 1rem; width: 100%; max-width: 54rem; margin: 0; }
+.manager-edit-form .contact-field input, .manager-edit-form .contact-field select, .manager-edit-form .contact-field textarea { width: 100%; }
+.manager-form-grid, .manager-system-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.manager-edit-form .contact-submit { justify-self: start; }
+.manager-footnote { color: #77869b; font-size: .76rem; }
+.manager-email-check .button-secondary { justify-self: start; margin: 0; }
+.customer-payment-note { padding: .8rem; border-radius: .6rem; background: #f2f6fd; color: #324c70; font-size: .85rem; }
+.customer-payment-note p { margin-bottom: 0; white-space: pre-wrap; }
+.policy-page > .manager-card { margin: .8rem 0; }
+.policy-page > p { line-height: 1.65; }
+.site-footer a { color: inherit; }
+@media (max-width: 850px) {
+  .manager-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manager-dashboard-grid { grid-template-columns: 1fr; }
+  .manager-chart-card { grid-column: auto; }
+}
+@media (max-width: 560px) {
+  .manager-nav { align-items: stretch; }
+  .manager-nav a { flex: 1 1 42%; }
+  .manager-nav form { flex: 1 1 100%; margin: .2rem 0 0; }
+  .manager-stat-grid, .manager-form-grid, .manager-system-grid { grid-template-columns: 1fr; }
+  .manager-filter, .manager-search { align-items: stretch; }
+  .manager-search label, .manager-search input, .manager-search select { width: 100%; min-width: 0; }
+  .manager-order-top { flex-direction: column; }
+  .sales-chart { gap: .2rem; }
+  .sales-bar-value { font-size: .5rem; }
+}
