@@ -70,7 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const paymentMethod = document.querySelector('#payment_method');
   const paymentInstructions = document.querySelector('#payment-instructions');
   const paymentPanels = document.querySelectorAll('.payment-method-details[data-payment-method]');
-  if (paymentMethod && paymentInstructions && paymentPanels.length) {
+  const checkoutSubmit = document.querySelector('#checkout-submit');
+  const checkoutPaymentNote = document.querySelector('#checkout-payment-note');
+  if (paymentMethod) {
     const updatePaymentDetails = () => {
       let selectedPanel = false;
       paymentPanels.forEach((panel) => {
@@ -78,7 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
         panel.hidden = !isSelected;
         selectedPanel = selectedPanel || isSelected;
       });
-      paymentInstructions.hidden = !selectedPanel;
+      if (paymentInstructions) paymentInstructions.hidden = !selectedPanel;
+      const isOnlinePayment = paymentMethod.value === 'chapa';
+      if (checkoutSubmit) {
+        checkoutSubmit.textContent = isOnlinePayment
+          ? checkoutSubmit.dataset.onlineLabel
+          : checkoutSubmit.dataset.manualLabel;
+      }
+      if (checkoutPaymentNote) {
+        checkoutPaymentNote.textContent = isOnlinePayment
+          ? checkoutPaymentNote.dataset.onlineNote
+          : checkoutPaymentNote.dataset.manualNote;
+      }
     };
     paymentMethod.addEventListener('change', updatePaymentDetails);
     updatePaymentDetails();

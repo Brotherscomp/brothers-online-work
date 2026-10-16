@@ -32,3 +32,5 @@ services:
         value: yazezewkassa@gmail.com
       - key: ADMIN_PANEL_PASSWORD
         sync: false
+      - key: CHAPA_SECRET_KEY
+        sync: false

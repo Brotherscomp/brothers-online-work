@@ -1,11 +1,18 @@
 from decimal import Decimal, InvalidOperation
+import secrets
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 
 from .authss import _normalize_email, valid_auth_csrf_token
 from .emailing import MailConfigurationError, MailDeliveryError, send_email
-from .models import create_device_request, get_product, get_products, get_products_by_ids, place_order
-from .payments import PAYMENT_DETAILS, PAYMENT_METHODS
+from .models import (
+    create_device_request, get_chapa_order_by_reference, get_product, get_products,
+    get_products_by_ids, mark_chapa_order_paid, place_order, set_chapa_payment_reference,
+)
+from .payments import (
+    ChapaPaymentError, PAYMENT_DETAILS, PAYMENT_METHODS, start_chapa_checkout,
+    verify_chapa_checkout,
+)
 from .translations import get_language, translate
 
 views = Blueprint('views', __name__)
@@ -47,6 +54,86 @@ def format_order_items(lines):
         f"{line['quantity']} x {line['product']['name']} — ETB {line['line_total'] / 100:,.2f}"
         for line in lines
     )
+
+
+def _online_checkout_available(lines):
+    return bool(current_app.config.get('CHAPA_SECRET_KEY')) and bool(lines) and all(
+        line['product']['pricing_kind'] == 'fixed' for line in lines
+    )
+
+
+def _verified_chapa_order(tx_ref):
+    order = get_chapa_order_by_reference(tx_ref)
+    if order is None:
+        return None, False
+    if order['payment_status'] == 'Paid':
+        return order, True
+
+    result = verify_chapa_checkout(current_app.config.get('CHAPA_SECRET_KEY', ''), tx_ref)
+    data = result.get('data')
+    if not isinstance(data, dict):
+        return order, False
+    try:
+        amount_cents = int((Decimal(str(data.get('amount'))) * 100).quantize(Decimal('1')))
+    except (InvalidOperation, TypeError, ValueError):
+        return order, False
+
+    is_verified_live_payment = (
+        result.get('status') == 'success'
+        and str(data.get('status', '')).lower() == 'success'
+        and data.get('tx_ref') == tx_ref
+        and str(data.get('currency', '')).upper() == 'ETB'
+        and str(data.get('mode', '')).lower() == 'live'
+        and amount_cents == order['total_cents']
+    )
+    if not is_verified_live_payment:
+        return order, False
+
+    newly_paid = mark_chapa_order_paid(tx_ref, str(data.get('reference') or '')[:200])
+    if newly_paid:
+        paid_order = get_chapa_order_by_reference(tx_ref)
+        if paid_order is not None:
+            _notify_chapa_payment(paid_order)
+    return get_chapa_order_by_reference(tx_ref), True
+
+
+def _notify_chapa_payment(order):
+    manager_body = '\n'.join([
+        f'Chapa verified payment for order #{order["id"]}.',
+        f'Customer: {order["customer_name"]}',
+        f'Email: {order["email"]}',
+        f'Paid amount: ETB {order["total_cents"] / 100:,.2f}',
+    ])
+    try:
+        send_email(
+            f'Payment received for order #{order["id"]} | Brothers-Online-Work',
+            manager_body,
+            current_app.config['DEVICE_REQUEST_RECIPIENT'],
+            reply_to=order['email'],
+        )
+    except (MailConfigurationError, MailDeliveryError):
+        current_app.logger.exception('Chapa payment was verified, but the store payment email failed.')
+
+    customer_body = '\n'.join([
+        f'Hello {order["customer_name"]},',
+        '',
+        f'We verified your payment for Brothers-Online-Work order #{order["id"]}.',
+        f'Paid amount: ETB {order["total_cents"] / 100:,.2f}',
+        '',
+        'Thank you. Our team will confirm the order details with you.',
+        '',
+        'Brothers-Online-Work',
+        '0909847775',
+    ])
+    try:
+        send_email(
+            f'Payment confirmed for order #{order["id"]} | Brothers-Online-Work',
+            customer_body,
+            order['email'],
+            reply_to=current_app.config['CONTACT_RECIPIENT'],
+        )
+    except (MailConfigurationError, MailDeliveryError):
+        current_app.logger.exception('Chapa payment was verified, but the customer payment email failed.')
 
 
 @views.route('/')
@@ -322,7 +409,12 @@ def product_detail(product_id):
 @views.route('/cart')
 def cart():
     lines, total_cents = cart_products()
-    return render_template('store/cart.html', lines=lines, total_cents=total_cents)
+    return render_template(
+        'store/cart.html',
+        lines=lines,
+        total_cents=total_cents,
+        online_checkout_available=_online_checkout_available(lines),
+    )
 
 
 @views.route('/cart/add/<int:product_id>', methods=['POST'])
@@ -372,6 +464,12 @@ def checkout():
         flash(translate('Add a product to your cart before checkout.'), 'error')
         return redirect(url_for('views.home'))
 
+    online_checkout_available = _online_checkout_available(lines)
+    payment_methods = PAYMENT_METHODS
+    if online_checkout_available:
+        payment_methods += (('chapa', 'Online payment via Chapa (Telebirr, CBE, and supported cards/banks)'),)
+    payment_method_labels = dict(payment_methods)
+
     if request.method == 'POST':
         if not valid_auth_csrf_token():
             abort(400)
@@ -379,8 +477,10 @@ def checkout():
         email = _normalize_email(request.form.get('email', ''))
         address = request.form.get('address', '').strip()
         payment_method = request.form.get('payment_method', '')
-        if (not customer_name or len(customer_name) > 160 or not email or len(address) > 5000
-                or payment_method not in {method for method, _label in PAYMENT_METHODS}):
+        if payment_method == 'chapa' and not online_checkout_available:
+            flash(translate('Online checkout is only available for exact fixed-price items after the payment account is connected.'), 'error')
+        elif (not customer_name or len(customer_name) > 160 or not email or len(address) > 5000
+                or payment_method not in payment_method_labels):
             flash(translate('Enter your name, a valid email address, and a payment method.'), 'error')
         else:
             try:
@@ -390,6 +490,48 @@ def checkout():
             except ValueError as error:
                 flash(translate(str(error)), 'error')
                 return redirect(url_for('views.cart'))
+
+            if payment_method == 'chapa':
+                tx_ref = f'brothers-{order_id}-{secrets.token_hex(16)}'
+                if not set_chapa_payment_reference(order_id, tx_ref):
+                    current_app.logger.error('Could not store the Chapa payment reference for order #%s.', order_id)
+                    session.pop('cart', None)
+                    return render_template(
+                        'store/payment_result.html',
+                        order={'id': order_id, 'total_cents': total_cents},
+                        payment_confirmed=False,
+                        payment_start_failed=True,
+                    )
+
+                first_name, _, last_name = customer_name.partition(' ')
+                invoice_items = [
+                    {'key': line['product']['name'][:100], 'value': f"{line['quantity']} x {line['line_total'] / 100:.2f} ETB"}
+                    for line in lines
+                ]
+                try:
+                    checkout_url = start_chapa_checkout(
+                        current_app.config.get('CHAPA_SECRET_KEY', ''),
+                        amount_cents=total_cents,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        tx_ref=tx_ref,
+                        callback_url=url_for('views.chapa_callback', _external=True),
+                        return_url=url_for('views.chapa_return', _external=True, tx_ref=tx_ref),
+                        items=invoice_items,
+                    )
+                except ChapaPaymentError:
+                    current_app.logger.exception('Could not start Chapa checkout for order #%s.', order_id)
+                    session.pop('cart', None)
+                    return render_template(
+                        'store/payment_result.html',
+                        order={'id': order_id, 'total_cents': total_cents},
+                        payment_confirmed=False,
+                        payment_start_failed=True,
+                    )
+
+                session.pop('cart', None)
+                return redirect(checkout_url, code=303)
 
             items_text = format_order_items(lines)
             manager_body = '\n'.join([
@@ -469,7 +611,7 @@ def checkout():
                 confirmation_sent=confirmation_sent,
                 customer_email=email,
                 payment_method=payment_method,
-                payment_method_label=dict(PAYMENT_METHODS)[payment_method],
+                payment_method_label=payment_method_labels[payment_method],
                 payment_details=PAYMENT_DETAILS.get(payment_method),
             )
 
@@ -479,7 +621,44 @@ def checkout():
         total_cents=total_cents,
         customer_name=session.get('first_name', ''),
         customer_email=session.get('email', ''),
-        payment_methods=PAYMENT_METHODS,
+        payment_methods=payment_methods,
         selected_payment_method=request.form.get('payment_method', 'cash_pickup'),
         payment_details=PAYMENT_DETAILS,
+        online_checkout_available=online_checkout_available,
+    )
+
+
+@views.route('/payments/chapa/callback', methods=['GET'])
+def chapa_callback():
+    tx_ref = (request.args.get('trx_ref') or request.args.get('tx_ref') or '').strip()
+    if not tx_ref or len(tx_ref) > 120:
+        return jsonify(status='invalid_reference'), 400
+    try:
+        order, payment_confirmed = _verified_chapa_order(tx_ref)
+    except ChapaPaymentError:
+        current_app.logger.exception('Chapa callback verification could not reach the payment provider.')
+        return jsonify(status='verification_unavailable'), 503
+    if order is None:
+        return jsonify(status='unknown_reference'), 404
+    return jsonify(status='verified' if payment_confirmed else 'not_verified'), 200
+
+
+@views.route('/payments/chapa/return', methods=['GET'])
+def chapa_return():
+    tx_ref = (request.args.get('tx_ref') or request.args.get('trx_ref') or '').strip()
+    if not tx_ref or len(tx_ref) > 120:
+        abort(404)
+    try:
+        order, payment_confirmed = _verified_chapa_order(tx_ref)
+    except ChapaPaymentError:
+        current_app.logger.exception('Could not verify the returning Chapa payment.')
+        order = get_chapa_order_by_reference(tx_ref)
+        payment_confirmed = False
+    if order is None:
+        abort(404)
+    return render_template(
+        'store/payment_result.html',
+        order=order,
+        payment_confirmed=payment_confirmed,
+        payment_start_failed=False,
     )

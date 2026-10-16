@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Payment status | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="order-success">
+    {% if payment_confirmed %}
+      <p class="success-mark" aria-hidden="true">✓</p>
+      <p class="eyebrow">{{ tr('PAYMENT CONFIRMED') }}</p>
+      <h1>{{ tr('Your payment is confirmed.') }}</h1>
+      <p>{{ tr('Order number:') }} <strong>#{{ order.id }}</strong>.</p>
+      <p>{{ tr('Paid amount:') }} <strong>{{ order.total_cents | money }}</strong></p>
+      <p>{{ tr('Chapa verified this payment with the provider.') }}</p>
+    {% elif payment_start_failed %}
+      <p class="eyebrow">{{ tr('PAYMENT NOT STARTED') }}</p>
+      <h1>{{ tr('We could not start online checkout.') }}</h1>
+      <p>{{ tr('Your request was saved as order') }} <strong>#{{ order.id }}</strong>, but no payment was confirmed.</p>
+      <p>{{ tr('Please contact us with your order number before submitting another request.') }}</p>
+    {% else %}
+      <p class="eyebrow">{{ tr('PAYMENT PENDING') }}</p>
+      <h1>{{ tr('We have not confirmed this payment yet.') }}</h1>
+      <p>{{ tr('Order number:') }} <strong>#{{ order.id }}</strong>.</p>
+      <p>{{ tr('If you completed payment, wait a moment and refresh this page. Do not pay again until you check the order status with us.') }}</p>
+    {% endif %}
+    <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Back to the shop') }}</a>
+  </section>
+{% endblock %}

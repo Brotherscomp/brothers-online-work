@@ -103,6 +103,8 @@ SQLITE_SCHEMA = '''
         payment_status TEXT NOT NULL DEFAULT 'Unpaid',
         payment_instructions TEXT NOT NULL DEFAULT '',
         inventory_applied INTEGER NOT NULL DEFAULT 0,
+        payment_reference TEXT NOT NULL DEFAULT '',
+        gateway_reference TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS order_items (
@@ -181,6 +183,8 @@ POSTGRES_SCHEMA = '''
         payment_status TEXT NOT NULL DEFAULT 'Unpaid',
         payment_instructions TEXT NOT NULL DEFAULT '',
         inventory_applied INTEGER NOT NULL DEFAULT 0,
+        payment_reference TEXT NOT NULL DEFAULT '',
+        gateway_reference TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::text)
     );
     CREATE TABLE IF NOT EXISTS order_items (
@@ -274,9 +278,15 @@ def init_db():
             ('payment_status', "TEXT NOT NULL DEFAULT 'Unpaid'"),
             ('payment_instructions', "TEXT NOT NULL DEFAULT ''"),
             ('inventory_applied', 'INTEGER NOT NULL DEFAULT 0'),
+            ('payment_reference', "TEXT NOT NULL DEFAULT ''"),
+            ('gateway_reference', "TEXT NOT NULL DEFAULT ''"),
         ):
             if column_name not in order_columns:
                 connection.execute(f'ALTER TABLE orders ADD COLUMN {column_name} {definition}')
+        connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS orders_payment_reference_unique "
+            "ON orders(payment_reference) WHERE payment_reference <> ''"
+        )
 
         # Hide the starter demo catalog from earlier versions of the app.
         connection.execute("UPDATE products SET active = 0 WHERE name IN ('Everyday T-Shirt', 'Canvas Tote Bag', 'Ceramic Coffee Mug', 'National ID print and update')")
@@ -747,6 +757,37 @@ def update_order_payment_status(order_id, payment_status):
                 (payment_status, order_id),
             )
         return cursor.rowcount > 0
+
+
+def set_chapa_payment_reference(order_id, payment_reference):
+    with get_db_connection() as connection:
+        cursor = connection.execute(
+            "UPDATE orders SET payment_reference = ? "
+            "WHERE id = ? AND payment_method = 'chapa' AND payment_reference = ''",
+            (payment_reference, order_id),
+        )
+        return cursor.rowcount == 1
+
+
+def get_chapa_order_by_reference(payment_reference):
+    with get_db_connection() as connection:
+        return connection.execute(
+            '''SELECT id, customer_name, email, total_cents, status, payment_status,
+                      payment_method, payment_reference
+               FROM orders WHERE payment_reference = ? AND payment_method = 'chapa' ''',
+            (payment_reference,),
+        ).fetchone()
+
+
+def mark_chapa_order_paid(payment_reference, gateway_reference=''):
+    with get_db_connection() as connection:
+        cursor = connection.execute(
+            '''UPDATE orders SET payment_status = 'Paid', gateway_reference = ?
+               WHERE payment_reference = ? AND payment_method = 'chapa'
+                 AND payment_status <> 'Paid' ''',
+            (gateway_reference, payment_reference),
+        )
+        return cursor.rowcount == 1
 
 
 def get_admin_order(order_id):
