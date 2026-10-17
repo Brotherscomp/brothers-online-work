@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Products and services | Admin') }}{% endblock %}
+{% block content %}
+<section class="manager-panel admin-dashboard">
+  <div class="manager-heading"><div><p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p><h1>{{ tr('Products and services') }}</h1><p>{{ tr('Add catalog items, adjust pricing and stock, or hide an item from the shop.') }}</p></div><form method="post" action="{{ url_for('manager.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button></form></div>
+  {% include 'manager/_nav.html' %}
+  <section class="admin-table-card admin-product-editor">
+    <h2>{{ tr('Edit product') if product else tr('Add a product or service') }}</h2>
+    <form class="admin-product-form" method="post" action="{{ url_for('manager.products', product_id=product.id) if product else url_for('manager.products') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>{{ tr('Name') }}<input name="name" maxlength="120" required value="{{ form_values.get('name', product.name if product else '') }}"></label>
+      <label>{{ tr('Category') }}<input name="category" maxlength="60" required value="{{ form_values.get('category', product.category if product else '') }}" placeholder="Computers, Printers, Print & Copy"></label>
+      <label>{{ tr('Price in ETB') }}<input type="number" name="price_etb" min="0" max="100000000" step="0.01" inputmode="decimal" required value="{{ form_values.get('price_etb', ('%.2f'|format(product.price_cents / 100)) if product else '') }}"></label>
+      <label>{{ tr('Stock') }}<input type="number" name="stock" min="0" max="1000000000" step="1" required value="{{ form_values.get('stock', product.stock if product else 0) }}"></label>
+      <label>{{ tr('Icon') }}<input name="emoji" maxlength="16" value="{{ form_values.get('emoji', product.emoji if product else '🛍️') }}"></label>
+      <label>{{ tr('Price label') }}<select name="pricing_kind"><option value="fixed" {% if form_values.get('pricing_kind', product.pricing_kind if product else 'fixed') == 'fixed' %}selected{% endif %}>{{ tr('Fixed price') }}</option><option value="from" {% if form_values.get('pricing_kind', product.pricing_kind if product else 'fixed') == 'from' %}selected{% endif %}>{{ tr('Starting from') }}</option></select></label>
+      <label>{{ tr('Unit') }}<input name="unit_label" maxlength="32" value="{{ form_values.get('unit_label', product.unit_label if product else 'each') }}" placeholder="each, page, service"></label>
+      <label class="admin-product-description">{{ tr('Description') }}<textarea name="description" maxlength="2000" rows="3">{{ form_values.get('description', product.description if product else '') }}</textarea></label>
+      <div class="admin-product-actions"><button class="contact-submit" type="submit">{{ tr('Save product') if product else tr('Add to shop') }}</button>{% if product %}<a class="button-secondary" href="{{ url_for('manager.products') }}">{{ tr('Cancel edit') }}</a>{% endif %}</div>
+    </form>
+  </section>
+  <section class="admin-table-card"><div class="admin-card-heading"><div><h2>{{ tr('Catalog') }}</h2><p>{{ products | length }} {{ tr('items, including hidden items') }}</p></div></div>
+    {% if products %}<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>{{ tr('Product') }}</th><th>{{ tr('Category') }}</th><th>{{ tr('Price') }}</th><th>{{ tr('Stock') }}</th><th>{{ tr('Visibility') }}</th><th>{{ tr('Actions') }}</th></tr></thead><tbody>
+    {% for item in products %}<tr><td><strong>{{ item.emoji }} {{ item.name }}</strong><small>{{ item.description }}</small></td><td>{{ item.category }}</td><td>{{ item.price_cents | money }}{% if item.pricing_kind == 'from' %}<small>{{ tr('starting from') }}</small>{% endif %}</td><td><span class="{% if item.stock <= 5 %}admin-stock-low{% endif %}">{{ item.stock }}</span></td><td><span class="admin-status {% if not item.active %}admin-status-muted{% endif %}">{{ tr('Visible') if item.active else tr('Hidden') }}</span></td><td><div class="admin-action-stack"><a href="{{ url_for('manager.products', product_id=item.id) }}">{{ tr('Edit') }}</a><form method="post" action="{{ url_for('manager.change_product_availability', product_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 0 if item.active else 1 }}"><button class="admin-text-button" type="submit">{{ tr('Hide') if item.active else tr('Show') }}</button></form></div></td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p class="admin-empty-inline">{{ tr('No catalog items found.') }}</p>{% endif %}
+  </section>
+</section>
+{% endblock %}

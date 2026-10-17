@@ -3,10 +3,13 @@
 {% block content %}
   <h1>{{ tr('Log in') }}</h1>
   <form method="post" action="{{ url_for('auth.login') }}">
+    <input type="hidden" name="csrf_token" value="{{ auth_csrf_token() }}">
     <label for="email">{{ tr('Email') }}</label>
-    <input id="email" name="email" type="email" autocomplete="email" required>
+    <input id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" value="{{ form_email }}" required>
     <label for="password">{{ tr('Password') }}</label>
     <input id="password" name="password" type="password" autocomplete="current-password" required>
     <button type="submit">{{ tr('Log in') }}</button>
   </form>
+  <p><a href="{{ url_for('auth.password_reset_request') }}">{{ tr('Forgot your password?') }}</a></p>
+  <p>{{ tr('Need an account?') }} <a href="{{ url_for('auth.sign_up') }}">{{ tr('Sign up') }}</a></p>
 {% endblock %}

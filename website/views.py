@@ -1,10 +1,11 @@
-import re
 from decimal import Decimal, InvalidOperation
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
+from .authss import _normalize_email, valid_auth_csrf_token
 from .emailing import MailConfigurationError, MailDeliveryError, send_email
 from .models import create_device_request, get_product, get_products, get_products_by_ids, place_order
+from .payments import PAYMENT_METHODS
 from .translations import get_language, translate
 
 views = Blueprint('views', __name__)
@@ -12,6 +13,8 @@ views = Blueprint('views', __name__)
 
 @views.route('/language/<language>', methods=['POST'])
 def set_language(language):
+    if not valid_auth_csrf_token():
+        abort(400)
     if language in ('en', 'am'):
         session['language'] = language
     destination = request.form.get('next', '')
@@ -64,20 +67,31 @@ def home():
     return render_template('home.html', catalog_groups=groups, highlights=highlights)
 
 
+@views.route('/policies')
+def policies():
+    return render_template(
+        'policies.html',
+        contact_email=current_app.config['CONTACT_RECIPIENT'],
+        contact_phone='0909847775',
+    )
+
+
 @views.route('/contact', methods=['POST'])
 def contact():
+    if not valid_auth_csrf_token():
+        abort(400)
     home_contact = redirect(url_for('views.home') + '#contact')
     if request.form.get('website', '').strip():
         return home_contact
 
     first_name = ' '.join(request.form.get('first_name', '').split())
     last_name = ' '.join(request.form.get('last_name', '').split())
-    email = request.form.get('email', '').strip().lower()
+    email = _normalize_email(request.form.get('email', ''))
     phone = ' '.join(request.form.get('phone', '').split())
     service = request.form.get('service', '').strip()
     message = request.form.get('message', '').strip()
 
-    valid_email = re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email)
+    valid_email = bool(email)
     if (
         not first_name or len(first_name) > 80
         or not last_name or len(last_name) > 80
@@ -152,12 +166,14 @@ def contact():
 
 @views.route('/device-request', methods=['POST'])
 def device_request():
+    if not valid_auth_csrf_token():
+        abort(400)
     home_request = redirect(url_for('views.home') + '#device-request')
     if request.form.get('website', '').strip():
         return home_request
 
     customer_name = ' '.join(request.form.get('customer_name', '').split())
-    email = request.form.get('email', '').strip().lower()
+    email = _normalize_email(request.form.get('email', ''))
     phone = ' '.join(request.form.get('phone', '').split())
     request_type = request.form.get('request_type', '').strip()
     device_type_value = request.form.get('device_type', '').strip()
@@ -166,7 +182,7 @@ def device_request():
     details = request.form.get('details', '').strip()
     budget_text = request.form.get('budget_etb', '').strip().replace(',', '')
     budget_cents = None
-    valid_email = re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email)
+    valid_email = bool(email)
     request_types = {'purchase': 'New device purchase', 'repair': 'Device repair'}
     device_types = {
         'computer': 'Computer',
@@ -310,6 +326,8 @@ def cart():
 
 @views.route('/cart/add/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
+    if not valid_auth_csrf_token():
+        abort(400)
     product = get_product(product_id)
     if product is None or product['stock'] < 1:
         flash(translate('That product is currently unavailable.'), 'error')
@@ -322,38 +340,14 @@ def add_to_cart(product_id):
     else:
         cart[key] = quantity
         session['cart'] = cart
-        lines, total_cents = cart_products()
-        manager_body = '\n'.join([
-            'A customer added an item to a Brothers-Online-Work request cart. This is not yet a submitted order.',
-            '',
-            f"Added item: {product['name']}",
-            f'Quantity of this item in cart: {quantity}',
-            '',
-            'Current cart:',
-            format_order_items(lines),
-            f'Estimated cart total: ETB {total_cents / 100:,.2f}',
-            '',
-            'The customer name and email will be provided when the request is submitted at checkout.',
-        ])
-        try:
-            send_email(
-                f"Cart item added | Brothers-Online-Work",
-                manager_body,
-                current_app.config['DEVICE_REQUEST_RECIPIENT'],
-            )
-        except MailConfigurationError:
-            current_app.logger.error('An item was added to the cart, but SMTP is not configured for its notification.')
-            flash(translate('Item added to your request, but the shop email notification could not be sent.'), 'error')
-        except MailDeliveryError:
-            current_app.logger.exception('An item was added to the cart, but its shop email notification failed.')
-            flash(translate('Item added to your request, but the shop email notification could not be sent.'), 'error')
-        else:
-            flash(translate('Item added to your request and emailed to the shop.'), 'success')
+        flash(translate('Item added to your cart.'), 'success')
     return redirect(url_for('views.cart'))
 
 
 @views.route('/cart/update', methods=['POST'])
 def update_cart():
+    if not valid_auth_csrf_token():
+        abort(400)
     current_cart = session.get('cart', {})
     updated_cart = {}
     for product_id in current_cart:
@@ -378,16 +372,20 @@ def checkout():
         return redirect(url_for('views.home'))
 
     if request.method == 'POST':
+        if not valid_auth_csrf_token():
+            abort(400)
         customer_name = ' '.join(request.form.get('customer_name', '').split())
-        email = request.form.get('email', '').strip().lower()
+        email = _normalize_email(request.form.get('email', ''))
         address = request.form.get('address', '').strip()
-        valid_email = re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email)
-        if not customer_name or len(customer_name) > 160 or not valid_email or len(email) > 254 or len(address) > 5000:
-            flash(translate('Enter your name and a valid email address.'), 'error')
+        payment_method = request.form.get('payment_method', '')
+        valid_payment_methods = {method for method, _label in PAYMENT_METHODS}
+        if not customer_name or len(customer_name) > 160 or not email or len(address) > 5000 or payment_method not in valid_payment_methods:
+            flash(translate('Enter your name, a valid email address, and a payment method.'), 'error')
         else:
             try:
                 order_id, total_cents = place_order(
-                    customer_name, email, address, session.get('cart', {}), session.get('user_id')
+                    customer_name, email, address, session.get('cart', {}),
+                    session.get('user_id'), payment_method,
                 )
             except ValueError as error:
                 flash(translate(str(error)), 'error')
@@ -400,12 +398,13 @@ def checkout():
                 f'Customer: {customer_name}',
                 f'Email: {email}',
                 f'Address or service details: {address or "Not provided"}',
+                f'Preferred payment method: {dict(PAYMENT_METHODS)[payment_method]}',
                 '',
                 'Requested items:',
                 items_text,
                 f'Estimated total: ETB {total_cents / 100:,.2f}',
                 '',
-                'No payment was collected. Please confirm availability and final pricing with the customer.',
+                'No payment was collected. Confirm availability, final pricing, and payment instructions with the customer.',
             ])
             manager_notified = False
             try:
@@ -428,8 +427,9 @@ def checkout():
                 'Requested items:',
                 items_text,
                 f'Estimated total: ETB {total_cents / 100:,.2f}',
+                f'Preferred payment method: {dict(PAYMENT_METHODS)[payment_method]}',
                 '',
-                'No payment was collected. We will confirm availability and final pricing with you before completing your request.',
+                'No payment was collected. We will confirm availability, final pricing, and payment instructions with you before completing your request.',
                 '',
                 'Brothers-Online-Work',
                 'Yazezee Kassa',
@@ -457,6 +457,8 @@ def checkout():
                 manager_notified=manager_notified,
                 confirmation_sent=confirmation_sent,
                 customer_email=email,
+                payment_method=payment_method,
+                payment_method_label=dict(PAYMENT_METHODS)[payment_method],
             )
 
     return render_template(
@@ -464,4 +466,7 @@ def checkout():
         lines=lines,
         total_cents=total_cents,
         customer_name=session.get('first_name', ''),
+        customer_email=session.get('email', ''),
+        payment_methods=PAYMENT_METHODS,
+        selected_payment_method=request.form.get('payment_method', 'cash_pickup'),
     )

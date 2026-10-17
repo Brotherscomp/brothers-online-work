@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Brothers-Online-Work",
+  "short_name": "Brothers Online",
+  "description": "Technology, device repair, printing, and online form assistance.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8faf8",
+  "theme_color": "#2459c4",
+  "icons": [
+    {
+      "src": "/static/images/brothers-computer-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/brothers-computer-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

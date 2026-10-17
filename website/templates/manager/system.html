@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('System status | Admin') }}{% endblock %}
+{% block content %}
+<section class="manager-panel admin-dashboard">
+  <div class="manager-heading">
+    <div><p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p><h1>{{ tr('System status') }}</h1><p>{{ tr('Check hosted database and email configuration without displaying secret values.') }}</p></div>
+    <form method="post" action="{{ url_for('manager.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button></form>
+  </div>
+  {% include 'manager/_nav.html' %}
+  <div class="system-status-grid">
+    <article class="admin-table-card">
+      <h2>{{ tr('Database') }}</h2>
+      <p><strong>{{ tr('Connection') }}:</strong> <span class="status-pill {% if database_connected %}status-good{% else %}status-bad{% endif %}">{{ tr('Connected') if database_connected else tr('Unavailable') }}</span></p>
+      <p><strong>{{ tr('Database type') }}:</strong> {{ database_backend }}</p>
+      <p><strong>{{ tr('Hosted database URL') }}:</strong> {{ tr('Configured') if database_url_configured else tr('Missing') }}</p>
+      {% if not database_url_configured %}<p class="request-warning">{{ tr('The website is using local SQLite. On Render, set DATABASE_URL to your hosted PostgreSQL connection string.') }}</p>{% endif %}
+      {% if not database_connected %}<p class="request-warning">{{ tr('The database check failed. Review the Render service logs and hosted database connection settings.') }}</p>{% endif %}
+      <p class="muted">{{ tr('The check runs a simple database query. It does not replace a backup.') }}</p>
+    </article>
+    <article class="admin-table-card">
+      <h2>{{ tr('Manager sign-in') }}</h2>
+      <p><strong>{{ tr('Manager password') }}:</strong> {{ tr('Configured') if manager_password_configured else tr('Missing') }}</p>
+      {% if not manager_password_configured %}<p class="request-warning">{{ tr('Set ADMIN_PANEL_PASSWORD in the Render service environment, save it, then manually deploy.') }}</p>{% endif %}
+      <h2>{{ tr('Email setup') }}</h2>
+      <ul class="system-check-list">{% for label, configured in mail_checks.items() %}<li><span>{{ tr(label) }}</span><span class="status-pill {% if configured %}status-good{% else %}status-bad{% endif %}">{{ tr('Configured') if configured else tr('Missing') }}</span></li>{% endfor %}</ul>
+      {% if mail_ready %}
+        <form method="post" action="{{ url_for('manager.system') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">{{ tr('Send test email to') }} {{ contact_recipient }}</button></form>
+        <p class="muted">{{ tr('The button sends one test message. If delivery fails, use the Render logs to see the provider error.') }}</p>
+      {% else %}
+        <p class="request-warning">{{ tr('Complete the missing SMTP settings in Render before trying a test email.') }}</p>
+      {% endif %}
+    </article>
+  </div>
+</section>
+{% endblock %}

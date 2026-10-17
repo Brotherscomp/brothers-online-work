@@ -4,12 +4,13 @@
   <section class="manager-panel">
     <p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p>
     <h1>{{ tr('Manager sign in') }}</h1>
+    {% if login_error %}<p class="manager-login-error" role="alert">{{ login_error }}</p>{% endif %}
     {% if password_is_configured %}
-      <p>{{ tr('Sign in to review device requests and email quotes or repair feedback to customers.') }}</p>
+      <p>{{ tr('Use the manager password configured in this app’s ADMIN_PANEL_PASSWORD setting. It is separate from customer accounts.') }}</p>
       <form class="manager-login-form" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="contact-field" for="manager-password">{{ tr('Manager password') }}
-          <input id="manager-password" type="password" name="password" autocomplete="current-password" required>
+          <input id="manager-password" type="password" name="password" autocomplete="current-password" autocapitalize="off" required>
         </label>
         <button class="contact-submit" type="submit">{{ tr('Sign in') }}</button>
       </form>

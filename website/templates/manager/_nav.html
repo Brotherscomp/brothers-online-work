@@ -1,0 +1,9 @@
+<nav class="admin-nav" aria-label="{{ tr('Manager navigation') }}">
+  <a class="{% if request.endpoint == 'manager.dashboard' %}is-active{% endif %}" href="{{ url_for('manager.dashboard') }}">⌂ {{ tr('Overview') }}</a>
+  <a href="{{ url_for('manager.dashboard') }}#analytics">▥ {{ tr('Analytics') }}</a>
+  <a class="{% if request.endpoint in ['manager.orders', 'manager.change_order_status'] %}is-active{% endif %}" href="{{ url_for('manager.orders') }}">▤ {{ tr('Orders') }}</a>
+  <a class="{% if request.endpoint in ['manager.products', 'manager.change_product_availability'] %}is-active{% endif %}" href="{{ url_for('manager.products') }}">▣ {{ tr('Products') }}</a>
+  <a class="{% if request.endpoint == 'manager.customers' %}is-active{% endif %}" href="{{ url_for('manager.customers') }}">♙ {{ tr('Customers') }}</a>
+  <a class="{% if request.endpoint in ['manager.requests', 'manager.send_feedback'] %}is-active{% endif %}" href="{{ url_for('manager.requests') }}">✉ {{ tr('Device requests') }}</a>
+  <a class="{% if request.endpoint == 'manager.system' %}is-active{% endif %}" href="{{ url_for('manager.system') }}">⚙ {{ tr('System status') }}</a>
+</nav>

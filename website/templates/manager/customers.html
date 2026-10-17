@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Customers | Admin') }}{% endblock %}
+{% block content %}
+<section class="manager-panel admin-dashboard">
+  <div class="manager-heading"><div><p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p><h1>{{ tr('Customers') }}</h1><p>{{ tr('Customer contacts from accounts, shop orders, and device service requests.') }}</p></div><form method="post" action="{{ url_for('manager.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button></form></div>
+  {% include 'manager/_nav.html' %}
+  <section class="admin-table-card"><form class="admin-filter-form" method="get"><label>{{ tr('Search customers') }}<input type="search" name="q" value="{{ search }}" placeholder="{{ tr('Name, email, or phone') }}"></label><button class="contact-submit" type="submit">{{ tr('Search') }}</button></form>
+    {% if customers %}<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>{{ tr('Customer') }}</th><th>{{ tr('Phone') }}</th><th>{{ tr('Shop orders') }}</th><th>{{ tr('Service requests') }}</th><th>{{ tr('Last activity') }}</th></tr></thead><tbody>
+    {% for customer in customers %}<tr><td>{{ customer.customer_name }}<small><a href="mailto:{{ customer.email }}">{{ customer.email }}</a></small></td><td>{% if customer.phone %}<a href="tel:{{ customer.phone }}">{{ customer.phone }}</a>{% else %}—{% endif %}</td><td>{{ customer.order_count }}</td><td>{{ customer.request_count }}</td><td>{{ customer.last_activity or '—' }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p class="admin-empty-inline">{{ tr('No customers match your search.') }}</p>{% endif %}
+  </section>
+</section>
+{% endblock %}

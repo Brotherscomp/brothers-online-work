@@ -13,6 +13,7 @@
         <button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button>
       </form>
     </div>
+    {% include 'manager/_nav.html' %}
     {% for device_request in device_requests %}
       <article class="manager-request-card" id="request-{{ device_request.id }}">
         <div class="manager-request-heading">

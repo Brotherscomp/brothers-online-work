@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Delivery, cancellation, and refunds | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+<section class="trust-page">
+  <p class="eyebrow">{{ tr('CUSTOMER INFORMATION') }}</p>
+  <h1>{{ tr('Before you place an order') }}</h1>
+  <p>{{ tr('Orders are requests. We confirm that an item or service is available and agree the final price with you before payment.') }}</p>
+  <div class="trust-grid">
+    <article class="admin-table-card"><h2>{{ tr('Delivery and pickup') }}</h2><p>{{ tr('Pickup or delivery depends on the item, service, and location. We will confirm the available option, any delivery fee, and the expected timing with you before you pay.') }}</p></article>
+    <article class="admin-table-card"><h2>{{ tr('Cancellation') }}</h2><p>{{ tr('Contact us with your order number as soon as possible if you want to cancel. We will confirm whether work or preparation has started and explain the next step before any payment is taken.') }}</p></article>
+    <article class="admin-table-card"><h2>{{ tr('Refunds and returns') }}</h2><p>{{ tr('Refunds and returns depend on the item or service and the work already completed. Contact us before paying if you need to understand the terms for your order; we will explain the applicable terms when we confirm it.') }}</p></article>
+    <article class="admin-table-card"><h2>{{ tr('Payment safety') }}</h2><p>{{ tr('This website does not collect online payments. If you choose Telebirr or a bank transfer, wait for us to confirm the final total and send payment instructions. Never transfer based only on an estimate.') }}</p></article>
+  </div>
+  <div class="trust-contact"><h2>{{ tr('Questions or cancellation request?') }}</h2><p><a href="tel:+251909847775">{{ contact_phone }}</a> · <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p><p>{{ tr('Please include your order number so we can find your request.') }}</p></div>
+</section>
+{% endblock %}

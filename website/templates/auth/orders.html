@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('My orders | Brothers-Online-Work') }}{% endblock %}
+{% block content %}
+  <section class="manager-panel customer-orders-panel">
+    <p class="eyebrow">{{ tr('CUSTOMER ACCOUNT') }}</p>
+    <h1>{{ tr('My orders') }}</h1>
+    {% if orders %}
+      <div class="customer-order-list">
+        {% for order in orders %}
+          <article class="customer-order-card">
+            <header><div><h2>{{ tr('Order') }} #{{ order.id }}</h2><p>{{ order.created_at }}</p></div><span class="admin-status">{{ tr(order.status) }}</span></header>
+            <ul>{% for item in order_items[order.id] %}<li>{{ item.quantity }} × {{ item.product_name }}</li>{% endfor %}</ul>
+            <p><strong>{{ tr('Estimated total:') }} {{ order.total_cents | money }}</strong></p>
+            <p>{{ tr('Payment') }}: {{ order.payment_method | payment_method }}</p>
+            <p>{{ tr('Payment status') }}: <strong>{{ tr(order.payment_status) }}</strong></p>
+            {% if order.payment_instructions %}<div class="saved-payment-instructions"><strong>{{ tr('Payment instructions from the store') }}</strong><p>{{ order.payment_instructions }}</p></div>{% elif order.payment_method in ['telebirr', 'cbe', 'abay', 'boa', 'transfer_after_confirmation'] and order.payment_status == 'Unpaid' %}<p class="muted">{{ tr('The store will send transfer details after confirming the final total and availability.') }}</p>{% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>{{ tr('No orders are linked to this account yet.') }}</p>
+      <a class="button-link" href="{{ url_for('views.home') }}#catalog">{{ tr('Browse services') }}</a>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -5,3 +5,6 @@ venv/
 .env
 instance/*.sqlite3*
 .vscode/
+/Flask webapp.rar
+/photo_2026-10-09_*.jpg
+.env.*

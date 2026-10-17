@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('Orders | Admin') }}{% endblock %}
+{% block content %}
+<section class="manager-panel admin-dashboard">
+  <div class="manager-heading">
+    <div><p class="eyebrow">{{ tr('PRIVATE STORE AREA') }}</p><h1>{{ tr('Orders') }}</h1><p>{{ tr('Review orders, payment preferences, stock, and customer status.') }}</p></div>
+    <form method="post" action="{{ url_for('manager.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button-secondary" type="submit">{{ tr('Manager sign out') }}</button></form>
+  </div>
+  {% include 'manager/_nav.html' %}
+  <section class="admin-table-card">
+    <form class="admin-filter-form" method="get">
+      <label>{{ tr('Search orders') }}<input type="search" name="q" value="{{ search }}" placeholder="{{ tr('Customer, email, or order number') }}"></label>
+      <label>{{ tr('Status') }}<select name="status"><option value="">{{ tr('All statuses') }}</option>{% for status in order_statuses %}<option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ tr(status) }}</option>{% endfor %}</select></label>
+      <button class="contact-submit" type="submit">{{ tr('Filter') }}</button>
+    </form>
+    {% if orders %}
+      <div class="admin-table-wrap"><table class="admin-table admin-orders-table">
+        <thead><tr><th>{{ tr('Order') }}</th><th>{{ tr('Customer') }}</th><th>{{ tr('Items') }}</th><th>{{ tr('Estimated total') }}</th><th>{{ tr('Payment method') }}</th><th>{{ tr('Payment status') }}</th><th>{{ tr('Order status') }}</th><th>{{ tr('Update status') }}</th><th>{{ tr('Transfer details') }}</th></tr></thead>
+        <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>#{{ order.id }}<small>{{ order.created_at }}</small></td>
+            <td>{{ order.customer_name }}<small><a href="mailto:{{ order.email }}">{{ order.email }}</a></small><small>{{ order.address }}</small></td>
+            <td>{% for item in order_items[order.id] %}<span class="admin-order-line">{{ item.product_name }} × {{ item.quantity }}</span>{% else %}—{% endfor %}</td>
+            <td>{{ order.total_cents | money }}</td>
+            <td>{{ order.payment_method | payment_method }}</td>
+            <td>
+              <span class="admin-status {% if order.payment_status == 'Paid' %}admin-status-paid{% else %}admin-status-muted{% endif %}">{{ tr(order.payment_status) }}</span>
+              {% if order.status != 'Cancelled' %}
+                <form class="admin-status-form admin-payment-form" method="post" action="{{ url_for('manager.change_order_payment', order_id=order.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <select name="payment_status" aria-label="{{ tr('Payment status') }}">{% for payment_status in payment_statuses %}<option value="{{ payment_status }}" {% if payment_status == order.payment_status %}selected{% endif %}>{{ tr(payment_status) }}</option>{% endfor %}</select>
+                  <button class="button-secondary" type="submit">{{ tr('Save') }}</button>
+                </form>
+              {% endif %}
+            </td>
+            <td><span class="admin-status">{{ tr(order.status) }}</span></td>
+            <td><form class="admin-status-form" method="post" action="{{ url_for('manager.change_order_status', order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="status" aria-label="{{ tr('Order status') }}">{% for status in order_statuses %}<option value="{{ status }}" {% if status == order.status %}selected{% endif %}>{{ tr(status) }}</option>{% endfor %}</select><button class="button-secondary" type="submit">{{ tr('Save') }}</button></form></td>
+            <td>
+              {% if order.payment_method in transfer_payment_methods and order.status not in ['Request received', 'Cancelled'] %}
+                <form class="payment-instruction-form" method="post" action="{{ url_for('manager.send_payment_instructions', order_id=order.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <label class="visually-hidden" for="payment-instructions-{{ order.id }}">{{ tr('Bank or mobile transfer details') }}</label>
+                  <textarea id="payment-instructions-{{ order.id }}" name="payment_instructions" rows="3" maxlength="2000" required placeholder="{{ tr('Enter account or mobile wallet details') }}">{{ order.payment_instructions }}</textarea>
+                  <button class="button-secondary" type="submit">{{ tr('Save and email details') }}</button>
+                </form>
+              {% elif order.payment_instructions %}
+                <p class="saved-payment-instructions">{{ order.payment_instructions }}</p>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    {% else %}<p class="admin-empty-inline">{{ tr('No orders match your search.') }}</p>{% endif %}
+  </section>
+</section>
+{% endblock %}

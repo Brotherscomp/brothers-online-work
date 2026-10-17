@@ -66,4 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
     deviceRequestType.addEventListener('change', updateDeviceDetailsLabel);
     updateDeviceDetailsLabel();
   }
+  const installButton = document.querySelector('#install-app-button');
+  let installPrompt = null;
+  if (installButton) {
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      installPrompt = event;
+      installButton.hidden = false;
+    });
+
+    installButton.addEventListener('click', async () => {
+      if (!installPrompt) return;
+      const promptEvent = installPrompt;
+      installPrompt = null;
+      installButton.hidden = true;
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installPrompt = null;
+      installButton.hidden = true;
+    });
+  }
+
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  }
 });
