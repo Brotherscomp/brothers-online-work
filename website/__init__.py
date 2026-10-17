@@ -29,7 +29,6 @@ def create_app():
         'DEVICE_REQUEST_RECIPIENT', app.config['CONTACT_RECIPIENT']
     ).strip()
     app.config['ADMIN_PANEL_PASSWORD'] = os.environ.get('ADMIN_PANEL_PASSWORD', '')
-    app.config['CHAPA_SECRET_KEY'] = os.environ.get('CHAPA_SECRET_KEY', '').strip()
     app.jinja_env.filters['money'] = lambda cents: (
         f"ብር {cents / 100:,.2f}" if get_language() == 'am' else f"ETB {cents / 100:,.2f}"
     )

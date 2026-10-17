@@ -5,9 +5,7 @@ from urllib.request import Request, urlopen
 
 
 PAYMENT_METHODS = (
-    ("cash_pickup", "Cash at pickup"),
-    ("cash_delivery", "Cash on delivery"),
-    ("telebirr", "Pay with Telebirr"),
+    ("telebirr", "Telebirr transfer"),
 )
 
 PAYMENT_METHOD_LABELS = dict(PAYMENT_METHODS)
@@ -113,7 +111,7 @@ def start_telebirr_checkout(
             return_url=return_url,
             short_code=short_code,
             subject=f"Order {order_id}",
-            timeout_express="30",
+            timeout_express="60",
             total_amount=f"{amount_cents / 100:.2f}",
             nonce=secrets.token_hex(16),
             out_trade_no=str(order_id),

@@ -17,7 +17,7 @@
           <option value="{{ method }}" {% if selected_payment_method == method %}selected{% endif %}>{{ tr(label) }}</option>
         {% endfor %}
       </select>
-      <p class="muted" id="checkout-payment-note" data-manual-note="{{ tr('Choose a payment method to see the transfer details. Do not transfer until we confirm availability and the final amount.') }}" data-online-note="{{ tr('You will continue to Chapa secure checkout. We mark the order paid only after the provider confirms the exact amount.') }}">{{ tr('Choose a payment method to see the transfer details. Do not transfer until we confirm availability and the final amount.') }}</p>
+      <p class="muted">{{ tr('Choose a payment method to see the transfer details. Do not transfer until we confirm availability and the final amount.') }}</p>
       <section class="payment-instructions" id="payment-instructions" aria-live="polite" {% if selected_payment_method not in payment_details %}hidden{% endif %}>
         <h2>{{ tr('Transfer details') }}</h2>
         <p>{{ tr('Please wait for our team to confirm availability and the final amount before sending money.') }}</p>
@@ -33,7 +33,7 @@
           </div>
         {% endfor %}
       </section>
-      <button id="checkout-submit" type="submit" data-manual-label="{{ tr('Place request and view payment details') }}" data-online-label="{{ tr('Continue to secure payment') }}">{{ tr('Place request and view payment details') }}</button>
+      <button id="checkout-submit" type="submit">{{ tr('Place request and view payment details') }}</button>
       <p class="muted">{{ tr('Manual transfers are not automatically verified. For products or services with a starting price, we confirm the final amount with you before payment.') }}</p>
     </form>
     <aside class="order-summary">

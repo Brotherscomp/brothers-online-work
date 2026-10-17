@@ -24,11 +24,7 @@
     </form>
     <div class="cart-total"><span>{{ tr('Subtotal') }}</span><strong>{{ total_cents | money }}</strong></div>
     <p class="muted">{{ tr('Prices are estimates for products marked “From.” Final product and repair prices are confirmed before work or sale.') }}</p>
-    {% if online_checkout_available %}
-      <p class="muted">{{ tr('Secure online checkout is available for the fixed-price items in this cart. Starting-price items must be confirmed before payment.') }}</p>
-    {% else %}
-      <p class="muted">{{ tr('Pay now opens checkout to choose cash or manual transfer details. Manual transfers are not automatically verified.') }}</p>
-    {% endif %}
+    <p class="muted">{{ tr('Pay now opens checkout to view Telebirr transfer details. Manual transfers are not automatically verified.') }}</p>
     <a class="button-link" href="{{ url_for('views.checkout') }}">{{ tr('Pay now') }}</a>
   {% else %}
     <p>{{ tr('Your cart is empty.') }}</p>

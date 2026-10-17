@@ -759,37 +759,6 @@ def update_order_payment_status(order_id, payment_status):
         return cursor.rowcount > 0
 
 
-def set_chapa_payment_reference(order_id, payment_reference):
-    with get_db_connection() as connection:
-        cursor = connection.execute(
-            "UPDATE orders SET payment_reference = ? "
-            "WHERE id = ? AND payment_method = 'chapa' AND payment_reference = ''",
-            (payment_reference, order_id),
-        )
-        return cursor.rowcount == 1
-
-
-def get_chapa_order_by_reference(payment_reference):
-    with get_db_connection() as connection:
-        return connection.execute(
-            '''SELECT id, customer_name, email, total_cents, status, payment_status,
-                      payment_method, payment_reference
-               FROM orders WHERE payment_reference = ? AND payment_method = 'chapa' ''',
-            (payment_reference,),
-        ).fetchone()
-
-
-def mark_chapa_order_paid(payment_reference, gateway_reference=''):
-    with get_db_connection() as connection:
-        cursor = connection.execute(
-            '''UPDATE orders SET payment_status = 'Paid', gateway_reference = ?
-               WHERE payment_reference = ? AND payment_method = 'chapa'
-                 AND payment_status <> 'Paid' ''',
-            (gateway_reference, payment_reference),
-        )
-        return cursor.rowcount == 1
-
-
 def get_admin_order(order_id):
     with get_db_connection() as connection:
         return connection.execute(
