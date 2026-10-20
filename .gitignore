@@ -5,3 +5,5 @@ venv/
 .env
 instance/*.sqlite3*
 .vscode/
+
+.env.example

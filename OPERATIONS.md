@@ -35,4 +35,6 @@ The earlier screenshots exposed email and application credentials. Revoke the ex
 
 The checkout records the chosen payment preference. It does not connect to an automated Telebirr, CBE, Abay, or BOA payment API. For a transfer request, confirm stock and final price, then enter your verified payment details on the manager Orders page to email them to the customer. Check the incoming payment yourself before marking the order paid.
 
+Telebirr development credentials can be supplied locally through a root `.env` file. Copy `.env.example` to `.env` and fill in the development merchant values issued by Telebirr. The app reads `TELEBIRR_APP_ID`, `TELEBIRR_APP_KEY`, `TELEBIRR_PUBLIC_KEY`, `TELEBIRR_SHORT_CODE`, `TELEBIRR_RECEIVE_NAME`, `TELEBIRR_NOTIFY_URL`, and `TELEBIRR_RETURN_URL` into its configuration. `.env` is git-ignored; never commit it or use production credentials for development. Credential loading alone does not activate automated checkout: the current checkout still records a manual transfer preference and does not call the Telebirr SDK.
+
 The customer policy page asks customers to confirm delivery location, cost, timing, and applicable return/refund terms with the store before payment or work authorization. Replace that provisional wording with your exact business policy before treating it as a final legal policy.

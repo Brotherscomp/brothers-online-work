@@ -3,6 +3,7 @@ import os
 
 from datetime import timedelta
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -10,6 +11,7 @@ from .translations import get_language, translate
 
 
 def create_app():
+    load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(32)
     app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -29,6 +31,13 @@ def create_app():
         'DEVICE_REQUEST_RECIPIENT', app.config['CONTACT_RECIPIENT']
     ).strip()
     app.config['ADMIN_PANEL_PASSWORD'] = os.environ.get('ADMIN_PANEL_PASSWORD', '')
+    app.config['TELEBIRR_APP_ID'] = os.environ.get('TELEBIRR_APP_ID', '').strip()
+    app.config['TELEBIRR_APP_KEY'] = os.environ.get('TELEBIRR_APP_KEY', '').strip()
+    app.config['TELEBIRR_PUBLIC_KEY'] = os.environ.get('TELEBIRR_PUBLIC_KEY', '').strip()
+    app.config['TELEBIRR_SHORT_CODE'] = os.environ.get('TELEBIRR_SHORT_CODE', '').strip()
+    app.config['TELEBIRR_RECEIVE_NAME'] = os.environ.get('TELEBIRR_RECEIVE_NAME', '').strip()
+    app.config['TELEBIRR_NOTIFY_URL'] = os.environ.get('TELEBIRR_NOTIFY_URL', '').strip()
+    app.config['TELEBIRR_RETURN_URL'] = os.environ.get('TELEBIRR_RETURN_URL', '').strip()
     app.jinja_env.filters['money'] = lambda cents: (
         f"ብር {cents / 100:,.2f}" if get_language() == 'am' else f"ETB {cents / 100:,.2f}"
     )
