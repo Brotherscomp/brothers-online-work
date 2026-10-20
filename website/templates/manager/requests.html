@@ -73,5 +73,10 @@
         <p>{{ tr('New purchase and repair requests from the shop will appear here.') }}</p>
       </div>
     {% endfor %}
+    <div class="manager-pagination">
+      <span>Page {{ page }} of {{ total_pages }} · {{ total }} requests</span>
+      {% if page > 1 %}<a class="button-secondary" href="{{ url_for('manager.requests', page=page - 1) }}">Previous</a>{% endif %}
+      {% if page < total_pages %}<a class="button-secondary" href="{{ url_for('manager.requests', page=page + 1) }}">Next</a>{% endif %}
+    </div>
   </section>
 {% endblock %}

@@ -1,7 +1,12 @@
 import sqlite3
+import threading
 from contextlib import contextmanager
 
 from flask import current_app
+
+
+_rate_limit_cleanup_lock = threading.Lock()
+_last_rate_limit_cleanup = 0
 
 
 class DatabaseConnection:
@@ -27,7 +32,9 @@ def get_db_connection():
         raw_connection = psycopg.connect(database_url, row_factory=dict_row)
         connection = DatabaseConnection(raw_connection, is_postgres=True)
     else:
-        raw_connection = sqlite3.connect(current_app.config['DATABASE'])
+        raw_connection = sqlite3.connect(current_app.config['DATABASE'], timeout=15)
+        raw_connection.execute('PRAGMA foreign_keys = ON')
+        raw_connection.execute('PRAGMA busy_timeout = 15000')
         raw_connection.row_factory = sqlite3.Row
         connection = DatabaseConnection(raw_connection)
     try:
@@ -50,6 +57,35 @@ def is_integrity_error(error):
     return isinstance(error, psycopg.IntegrityError)
 
 
+def consume_rate_limit(bucket_key, max_requests, window_seconds, now):
+    global _last_rate_limit_cleanup
+    window_threshold = now - window_seconds
+    with get_db_connection() as connection:
+        row = connection.execute(
+            '''INSERT INTO rate_limits (bucket_key, window_started_at, request_count)
+               VALUES (?, ?, 1)
+               ON CONFLICT (bucket_key) DO UPDATE SET
+                 request_count = CASE
+                   WHEN rate_limits.window_started_at <= ? THEN 1
+                   ELSE rate_limits.request_count + 1
+                 END,
+                 window_started_at = CASE
+                   WHEN rate_limits.window_started_at <= ? THEN excluded.window_started_at
+                   ELSE rate_limits.window_started_at
+                 END
+               RETURNING request_count''',
+            (bucket_key, now, window_threshold, window_threshold),
+        ).fetchone()
+        if now - _last_rate_limit_cleanup >= 3600:
+            with _rate_limit_cleanup_lock:
+                if now - _last_rate_limit_cleanup >= 3600:
+                    connection.execute(
+                        'DELETE FROM rate_limits WHERE window_started_at < ?', (now - 86400,)
+                    )
+                    _last_rate_limit_cleanup = now
+        return int(row['request_count']) <= max_requests
+
+
 def _insert_id(connection, sql, parameters):
     if connection.is_postgres:
         return connection.execute(f'{sql} RETURNING id', parameters).fetchone()['id']
@@ -63,6 +99,7 @@ SQLITE_SCHEMA = '''
         first_name TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         email_verified INTEGER NOT NULL DEFAULT 1,
+        session_version INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -143,6 +180,7 @@ POSTGRES_SCHEMA = '''
         first_name TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         email_verified INTEGER NOT NULL DEFAULT 1,
+        session_version INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::text)
     );
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -223,6 +261,18 @@ def init_db():
             if statement.strip():
                 connection.execute(statement)
 
+        connection.execute(
+            '''CREATE TABLE IF NOT EXISTS rate_limits (
+                 bucket_key TEXT PRIMARY KEY,
+                 window_started_at BIGINT NOT NULL,
+                 request_count INTEGER NOT NULL
+               )'''
+        )
+        connection.execute(
+            'CREATE INDEX IF NOT EXISTS rate_limits_window_started_at '
+            'ON rate_limits(window_started_at)'
+        )
+
         if connection.is_postgres:
             user_columns = {
                 row['column_name']
@@ -235,6 +285,8 @@ def init_db():
             user_columns = {row['name'] for row in connection.execute('PRAGMA table_info(users)')}
         if 'email_verified' not in user_columns:
             connection.execute('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 1')
+        if 'session_version' not in user_columns:
+            connection.execute('ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0')
         if 'created_at' not in user_columns:
             if connection.is_postgres:
                 connection.execute(
@@ -287,6 +339,15 @@ def init_db():
             "CREATE UNIQUE INDEX IF NOT EXISTS orders_payment_reference_unique "
             "ON orders(payment_reference) WHERE payment_reference <> ''"
         )
+        for index_sql in (
+            'CREATE INDEX IF NOT EXISTS orders_created_at_id ON orders(created_at DESC, id DESC)',
+            'CREATE INDEX IF NOT EXISTS orders_user_created_at ON orders(user_id, created_at DESC, id DESC)',
+            'CREATE INDEX IF NOT EXISTS orders_payment_status_created_at ON orders(payment_status, status, created_at)',
+            'CREATE INDEX IF NOT EXISTS order_items_order_id_id ON order_items(order_id, id)',
+            'CREATE INDEX IF NOT EXISTS order_items_product_id ON order_items(product_id)',
+            'CREATE INDEX IF NOT EXISTS device_requests_created_at_id ON device_requests(created_at DESC, id DESC)',
+        ):
+            connection.execute(index_sql)
 
         # Hide the starter demo catalog from earlier versions of the app.
         connection.execute("UPDATE products SET active = 0 WHERE name IN ('Everyday T-Shirt', 'Canvas Tote Bag', 'Ceramic Coffee Mug', 'National ID print and update')")
@@ -324,9 +385,17 @@ def init_db():
 def find_user_by_email(email):
     with get_db_connection() as connection:
         return connection.execute(
-            'SELECT id, email, first_name, password_hash, email_verified FROM users WHERE email = ?',
+            'SELECT id, email, first_name, password_hash, email_verified, session_version FROM users WHERE email = ?',
             (email.lower(),),
         ).fetchone()
+
+
+def get_user_session_version(user_id):
+    with get_db_connection() as connection:
+        user = connection.execute(
+            'SELECT session_version FROM users WHERE id = ?', (user_id,)
+        ).fetchone()
+        return int(user['session_version']) if user else None
 
 
 def create_user(email, first_name, password_hash):
@@ -424,11 +493,18 @@ def create_device_request(
         )
 
 
-def get_device_requests():
+def get_device_requests(page=1, per_page=50):
+    page = max(1, int(page))
+    per_page = max(1, min(100, int(per_page)))
+    offset = (page - 1) * per_page
     with get_db_connection() as connection:
-        return connection.execute(
-            'SELECT * FROM device_requests ORDER BY created_at DESC, id DESC'
+        total = connection.execute('SELECT COUNT(*) AS total FROM device_requests').fetchone()['total']
+        rows = connection.execute(
+            '''SELECT * FROM device_requests
+               ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?''',
+            (per_page, offset),
         ).fetchall()
+        return rows, int(total)
 
 
 def get_device_request(request_id):
@@ -477,13 +553,23 @@ def password_reset_token_is_valid(token_hash, now):
 
 def consume_password_reset_token(token_hash, password_hash, now):
     with get_db_connection() as connection:
+        lock_clause = ' FOR UPDATE' if connection.is_postgres else ''
         token = connection.execute(
-            'SELECT user_id FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ?',
+            'SELECT user_id FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ?' + lock_clause,
             (token_hash, now),
         ).fetchone()
         if token is None:
             return False
-        connection.execute('UPDATE users SET password_hash = ? WHERE id = ?', (password_hash, token['user_id']))
+        deleted = connection.execute(
+            'DELETE FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ?',
+            (token_hash, now),
+        )
+        if deleted.rowcount != 1:
+            return False
+        connection.execute(
+            'UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?',
+            (password_hash, token['user_id']),
+        )
         connection.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', (token['user_id'],))
         return True
 
@@ -504,11 +590,18 @@ def create_email_verification_token(user_id, token_hash, expires_at):
 
 def consume_email_verification_token(token_hash, now):
     with get_db_connection() as connection:
+        lock_clause = ' FOR UPDATE' if connection.is_postgres else ''
         token = connection.execute(
-            'SELECT user_id FROM email_verification_tokens WHERE token_hash = ? AND expires_at > ?',
+            'SELECT user_id FROM email_verification_tokens WHERE token_hash = ? AND expires_at > ?' + lock_clause,
             (token_hash, now),
         ).fetchone()
         if token is None:
+            return False
+        deleted = connection.execute(
+            'DELETE FROM email_verification_tokens WHERE token_hash = ? AND expires_at > ?',
+            (token_hash, now),
+        )
+        if deleted.rowcount != 1:
             return False
         connection.execute('UPDATE users SET email_verified = 1 WHERE id = ?', (token['user_id'],))
         connection.execute('DELETE FROM email_verification_tokens WHERE user_id = ?', (token['user_id'],))
@@ -591,7 +684,7 @@ def get_manager_dashboard_data(selected_period='7d'):
             f'''SELECT {date_expr} AS period_key, SUM(total_cents) AS value_cents,
                        COUNT(*) AS order_count
                 FROM orders WHERE payment_status = 'Paid' AND status <> 'Cancelled'
-                  AND {date_expr} >= ?
+                  AND created_at >= ?
                 GROUP BY {date_expr} ORDER BY period_key''',
             (period_start,),
         ).fetchall()
@@ -696,11 +789,17 @@ def update_order_status(order_id, status):
         return 'not_found'
     try:
         with get_db_connection() as connection:
+            # Take a write lock before reading inventory_applied so concurrent
+            # manager submissions for the same order cannot apply stock twice.
+            locked_order = connection.execute(
+                'UPDATE orders SET inventory_applied = inventory_applied WHERE id = ?',
+                (order_id,),
+            )
+            if locked_order.rowcount != 1:
+                return 'not_found'
             order = connection.execute(
                 'SELECT inventory_applied FROM orders WHERE id = ?', (order_id,)
             ).fetchone()
-            if order is None:
-                return 'not_found'
             should_apply = status not in {'Request received', 'Cancelled'}
             applied = bool(order['inventory_applied'])
             if should_apply and not applied:
@@ -811,24 +910,45 @@ def set_admin_product_active(product_id, active):
         return cursor.rowcount > 0
 
 
-def get_admin_customers(search=''):
-    # Build a unified customer list from accounts, orders, and service requests.
+def get_admin_customers(search='', page=1, per_page=50):
+    # Aggregate and paginate in the database so the manager page stays bounded.
+    page = max(1, int(page))
+    per_page = max(1, min(100, int(per_page)))
+    offset = (page - 1) * per_page
+    pattern = f'%{search.strip().lower()}%'
+    source_cte = '''
+        WITH source_rows AS (
+          SELECT email, first_name AS customer_name, 0 AS order_count,
+                 0 AS order_value_cents, created_at AS last_activity
+          FROM users
+          UNION ALL
+          SELECT email, customer_name, 1,
+                 CASE WHEN status <> 'Cancelled' AND payment_status = 'Paid' THEN total_cents ELSE 0 END,
+                 created_at
+          FROM orders
+          UNION ALL
+          SELECT email, customer_name, 0, 0, created_at
+          FROM device_requests
+        ), grouped_customers AS (
+          SELECT LOWER(email) AS email, MAX(customer_name) AS customer_name,
+                 SUM(order_count) AS order_count, SUM(order_value_cents) AS order_value_cents,
+                 MAX(last_activity) AS last_activity
+          FROM source_rows GROUP BY LOWER(email)
+        ), filtered_customers AS (
+          SELECT * FROM grouped_customers
+          WHERE LOWER(email) LIKE ? OR LOWER(customer_name) LIKE ?
+        )
+    '''
+    parameters = (pattern, pattern)
     with get_db_connection() as connection:
+        total = connection.execute(
+            source_cte + 'SELECT COUNT(*) AS total FROM filtered_customers', parameters
+        ).fetchone()['total']
         rows = connection.execute(
-            '''SELECT LOWER(email) AS email, MAX(customer_name) AS customer_name,
-                      SUM(order_count) AS order_count, SUM(order_value_cents) AS order_value_cents,
-                      MAX(last_activity) AS last_activity
-               FROM (
-                 SELECT email, first_name AS customer_name, 0 AS order_count, 0 AS order_value_cents, created_at AS last_activity FROM users
-                 UNION ALL
-                 SELECT email, customer_name, 1,
-                        CASE WHEN status <> 'Cancelled' AND payment_status = 'Paid' THEN total_cents ELSE 0 END,
-                        created_at FROM orders
-                 UNION ALL
-                 SELECT email, customer_name, 0, 0, created_at FROM device_requests
-               ) customers
-               GROUP BY LOWER(email) ORDER BY last_activity DESC'''
+            source_cte + '''SELECT email, customer_name, order_count, order_value_cents, last_activity
+                            FROM filtered_customers
+                            ORDER BY last_activity DESC, email
+                            LIMIT ? OFFSET ?''',
+            parameters + (per_page, offset),
         ).fetchall()
-    if not search:
-        return rows
-    return [row for row in rows if search.lower() in row['email'].lower() or search.lower() in row['customer_name'].lower()]
+        return rows, int(total)

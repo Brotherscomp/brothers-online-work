@@ -3,6 +3,7 @@ import re
 import secrets
 import time
 from hmac import compare_digest
+from urllib.parse import urljoin
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -15,6 +16,7 @@ from .models import (
     email_verification_token_is_valid, find_user_by_email, get_customer_orders,
     is_integrity_error, password_reset_token_is_valid,
 )
+from .security import enforce_rate_limit, is_safe_local_redirect
 from .translations import translate
 
 auth = Blueprint('auth', __name__)
@@ -57,18 +59,27 @@ def _normalize_email(value):
     return f'{local_part.lower()}@{domain}'
 
 
+def _external_url(endpoint, **values):
+    path = url_for(endpoint, **values)
+    public_base_url = current_app.config.get('PUBLIC_BASE_URL')
+    if public_base_url:
+        return urljoin(public_base_url + '/', path.lstrip('/'))
+    return url_for(endpoint, _external=True, **values)
+
+
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         if not valid_auth_csrf_token():
             flash(translate('Your sign-in session expired. Refresh the page and try again.'), 'error')
             return render_template('auth/login.html', form_email=request.form.get('email', '').strip())
+        enforce_rate_limit('customer-login', 10, 900)
         email = _normalize_email(request.form.get('email', ''))
         password = request.form.get('password', '')
         if not email:
             flash(translate('Enter a valid email address.'), 'error')
         else:
-            user = find_user_by_email(email) if password else None
+            user = find_user_by_email(email) if password and len(password) <= 1024 else None
             if user is None or not check_password_hash(user['password_hash'], password):
                 flash(translate('Email or password is incorrect.'), 'error')
             elif not user['email_verified']:
@@ -84,10 +95,11 @@ def login():
                 session['user_id'] = user['id']
                 session['first_name'] = user['first_name']
                 session['email'] = user['email']
+                session['session_version'] = user['session_version']
                 session.permanent = True
                 flash(translate('Login successful.'), 'success')
                 destination = request.args.get('next', '')
-                if destination.startswith('/') and not destination.startswith('//'):
+                if is_safe_local_redirect(destination):
                     return redirect(destination)
                 return redirect(url_for('views.home'))
     return render_template('auth/login.html', form_email=request.form.get('email', '').strip())
@@ -114,6 +126,7 @@ def sign_up():
         if not valid_auth_csrf_token():
             flash(translate('Your sign-up session expired. Refresh the page and try again.'), 'error')
             return render_template('auth/sign_up.html')
+        enforce_rate_limit('customer-sign-up', 5, 3600)
         email = _normalize_email(request.form.get('email', ''))
         first_name = ' '.join(request.form.get('first_name', '').split())
         password = request.form.get('password', '')
@@ -124,8 +137,8 @@ def sign_up():
             flash(translate('Please complete all fields.'), 'error')
         elif password != confirm_password:
             flash(translate('Passwords do not match.'), 'error')
-        elif len(password) < 8 or len(password) > 1024:
-            flash(translate('Password must be between 8 and 1024 characters.'), 'error')
+        elif len(password) < 12 or len(password) > 1024:
+            flash(translate('Password must be between 12 and 1024 characters.'), 'error')
         elif find_user_by_email(email):
             flash(translate('An account with that email already exists.'), 'error')
         else:
@@ -139,7 +152,7 @@ def sign_up():
                 token = secrets.token_urlsafe(32)
                 token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
                 create_email_verification_token(user_id, token_hash, int(time.time()) + 86400)
-                verification_url = url_for('auth.verify_email', token=token, _external=True)
+                verification_url = _external_url('auth.verify_email', token=token)
                 message = '\n'.join([
                     f'Hello {first_name},', '',
                     'Confirm this email address to activate your Brothers-Online-Work account. This link expires in 24 hours.',
@@ -188,6 +201,7 @@ def verify_email_resend():
         if not valid_auth_csrf_token():
             flash(translate('Your request session expired. Refresh the page and try again.'), 'error')
             return render_template('auth/verify_email_resend.html')
+        enforce_rate_limit('email-verification-resend', 5, 3600)
         email = _normalize_email(request.form.get('email', ''))
         if not email:
             flash(translate('Enter a valid email address.'), 'error')
@@ -199,7 +213,7 @@ def verify_email_resend():
             token = secrets.token_urlsafe(32)
             token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
             create_email_verification_token(user['id'], token_hash, int(time.time()) + 86400)
-            verify_url = url_for('auth.verify_email', token=token, _external=True)
+            verify_url = _external_url('auth.verify_email', token=token)
             body = '\n'.join([
                 f"Hello {user['first_name']},", '',
                 'Confirm this email address to activate your account. This link expires in 24 hours.',
@@ -230,6 +244,7 @@ def password_reset_request():
         if not valid_auth_csrf_token():
             flash(translate('Your request session expired. Refresh the page and try again.'), 'error')
             return render_template('auth/password_reset_request.html')
+        enforce_rate_limit('password-reset-request', 5, 3600)
         email = _normalize_email(request.form.get('email', ''))
         if not email:
             flash(translate('Enter a valid email address.'), 'error')
@@ -239,7 +254,7 @@ def password_reset_request():
             token = secrets.token_urlsafe(32)
             token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
             create_password_reset_token(user['id'], token_hash, int(time.time()) + 3600)
-            reset_url = url_for('auth.reset_password', token=token, _external=True)
+            reset_url = _external_url('auth.reset_password', token=token)
             body = '\n'.join([
                 f"Hello {user['first_name']},", '',
                 'Use the link below to choose a new password. It expires in one hour and can be used once.',
@@ -269,8 +284,8 @@ def reset_password(token):
             return render_template('auth/password_reset.html')
         password = request.form.get('password', '')
         confirmation = request.form.get('confirm_password', '')
-        if len(password) < 8 or len(password) > 1024:
-            flash(translate('Password must be between 8 and 1024 characters.'), 'error')
+        if len(password) < 12 or len(password) > 1024:
+            flash(translate('Password must be between 12 and 1024 characters.'), 'error')
         elif password != confirmation:
             flash(translate('Passwords do not match.'), 'error')
         elif not consume_password_reset_token(token_hash, generate_password_hash(password), int(time.time())):
@@ -280,6 +295,7 @@ def reset_password(token):
             session.pop('user_id', None)
             session.pop('first_name', None)
             session.pop('email', None)
+            session.pop('session_version', None)
             flash(translate('Your password has been updated. You can now log in.'), 'success')
             return redirect(url_for('auth.login'))
     return render_template('auth/password_reset.html')

@@ -8,6 +8,7 @@ from .models import (
     create_device_request, get_product, get_products, get_products_by_ids, place_order,
 )
 from .payments import PAYMENT_DETAILS, PAYMENT_METHODS
+from .security import enforce_rate_limit, is_safe_local_redirect
 from .translations import get_language, translate
 
 views = Blueprint('views', __name__)
@@ -20,7 +21,7 @@ def set_language(language):
     if language in ('en', 'am'):
         session['language'] = language
     destination = request.form.get('next', '')
-    if destination.startswith('/') and not destination.startswith('//'):
+    if is_safe_local_redirect(destination):
         return redirect(destination)
     return redirect(url_for('views.home'))
 
@@ -82,6 +83,7 @@ def policies():
 def contact():
     if not valid_auth_csrf_token():
         abort(400)
+    enforce_rate_limit('contact-form', 5, 900)
     home_contact = redirect(url_for('views.home') + '#contact')
     if request.form.get('website', '').strip():
         return home_contact
@@ -171,6 +173,7 @@ def device_request():
     if not valid_auth_csrf_token():
         flash(translate('Your form session expired. Please refresh the page and submit your request again.'), 'error')
         return redirect(url_for('views.home') + '#device-request')
+    enforce_rate_limit('device-request-form', 5, 900)
     home_request = redirect(url_for('views.home') + '#device-request')
     if request.form.get('website', '').strip():
         return home_request
@@ -384,6 +387,7 @@ def checkout():
     if request.method == 'POST':
         if not valid_auth_csrf_token():
             abort(400)
+        enforce_rate_limit('checkout-submit', 10, 900)
         customer_name = ' '.join(request.form.get('customer_name', '').split())
         email = _normalize_email(request.form.get('email', ''))
         address = request.form.get('address', '').strip()

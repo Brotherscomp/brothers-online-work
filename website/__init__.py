@@ -2,9 +2,10 @@
 import os
 
 from datetime import timedelta
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .translations import get_language, translate
@@ -13,12 +14,53 @@ from .translations import get_language, translate
 def create_app():
     load_dotenv()
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(32)
+    app_environment = os.environ.get('APP_ENV', 'development').strip().lower()
+    secret_key = os.environ.get('SECRET_KEY', '').strip()
+    database_url = os.environ.get('DATABASE_URL', '').strip()
+    public_base_url = os.environ.get('PUBLIC_BASE_URL', '').strip().rstrip('/')
+    secure_cookie = os.environ.get('SESSION_COOKIE_SECURE', 'false').strip().lower() in {'1', 'true', 'yes', 'on'}
+    manager_password = os.environ.get('ADMIN_PANEL_PASSWORD', '')
+
+    if app_environment in {'production', 'prod'}:
+        missing_settings = []
+        if len(secret_key) < 32:
+            missing_settings.append('SECRET_KEY (at least 32 characters)')
+        if not database_url:
+            missing_settings.append('DATABASE_URL (PostgreSQL is required)')
+        parsed_public_url = urlsplit(public_base_url)
+        try:
+            parsed_public_url.port
+            public_url_valid = (
+                parsed_public_url.scheme == 'https'
+                and bool(parsed_public_url.hostname)
+                and not parsed_public_url.username
+                and not parsed_public_url.password
+                and not parsed_public_url.query
+                and not parsed_public_url.fragment
+                and parsed_public_url.path in {'', '/'}
+            )
+        except ValueError:
+            public_url_valid = False
+        if not public_url_valid:
+            missing_settings.append('PUBLIC_BASE_URL (the public HTTPS origin)')
+        if not secure_cookie:
+            missing_settings.append('SESSION_COOKIE_SECURE=true')
+        if len(manager_password) < 20 or len(manager_password) > 1024:
+            missing_settings.append('ADMIN_PANEL_PASSWORD (20 to 1024 characters)')
+        if missing_settings:
+            raise RuntimeError(
+                'Production configuration is incomplete: ' + ', '.join(missing_settings)
+            )
+
+    app.config['APP_ENV'] = app_environment
+    app.config['PUBLIC_BASE_URL'] = public_base_url
+    app.config['SECRET_KEY'] = secret_key or os.urandom(32)
+    app.config['MAX_CONTENT_LENGTH'] = 64 * 1024
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'false').strip().lower() in {'1', 'true', 'yes', 'on'}
+    app.config['SESSION_COOKIE_SECURE'] = secure_cookie
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=14)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', '').strip()
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', '587'))
     app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').strip().lower() in {'1', 'true', 'yes', 'on'}
@@ -30,7 +72,7 @@ def create_app():
     app.config['DEVICE_REQUEST_RECIPIENT'] = os.environ.get(
         'DEVICE_REQUEST_RECIPIENT', app.config['CONTACT_RECIPIENT']
     ).strip()
-    app.config['ADMIN_PANEL_PASSWORD'] = os.environ.get('ADMIN_PANEL_PASSWORD', '')
+    app.config['ADMIN_PANEL_PASSWORD'] = manager_password
     app.config['TELEBIRR_APP_ID'] = os.environ.get('TELEBIRR_APP_ID', '').strip()
     app.config['TELEBIRR_APP_KEY'] = os.environ.get('TELEBIRR_APP_KEY', '').strip()
     app.config['TELEBIRR_PUBLIC_KEY'] = os.environ.get('TELEBIRR_PUBLIC_KEY', '').strip()
@@ -43,7 +85,6 @@ def create_app():
     )
     app.jinja_env.globals['tr'] = translate
     app.jinja_env.globals['get_language'] = get_language
-    database_url = os.environ.get('DATABASE_URL', '').strip()
     if database_url:
         app.config['DATABASE_URL'] = database_url
     else:
@@ -59,7 +100,34 @@ def create_app():
     app.jinja_env.globals['csrf_token'] = csrf_token
     app.jinja_env.globals['auth_csrf_token'] = auth_csrf_token
 
-    from .models import get_db_connection
+    @app.after_request
+    def set_security_headers(response):
+        response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+        response.headers.setdefault('X-Frame-Options', 'DENY')
+        response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+        response.headers.setdefault(
+            'Content-Security-Policy',
+            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+            "form-action 'self'; img-src 'self' data:; script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'",
+        )
+        if request.is_secure:
+            response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000')
+        return response
+
+    from .models import get_db_connection, get_user_session_version
+
+    @app.before_request
+    def invalidate_stale_customer_sessions():
+        user_id = session.get('user_id')
+        if not user_id or request.endpoint == 'static':
+            return None
+        current_version = get_user_session_version(user_id)
+        if current_version is None or current_version != session.get('session_version', 0):
+            for key in ('user_id', 'first_name', 'email', 'session_version'):
+                session.pop(key, None)
+        return None
 
     @app.get('/health')
     def health():

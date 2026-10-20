@@ -656,6 +656,8 @@ main {
 .policy-page > .manager-card { margin: .8rem 0; }
 .policy-page > p { line-height: 1.65; }
 .site-footer a { color: inherit; }
+.manager-pagination { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; color: #677990; font-size: .82rem; }
+.manager-pagination .button-secondary { margin: 0; text-decoration: none; }
 @media (max-width: 850px) {
   .manager-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .manager-dashboard-grid { grid-template-columns: 1fr; }

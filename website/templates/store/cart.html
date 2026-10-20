@@ -24,8 +24,8 @@
     </form>
     <div class="cart-total"><span>{{ tr('Subtotal') }}</span><strong>{{ total_cents | money }}</strong></div>
     <p class="muted">{{ tr('Prices are estimates for products marked “From.” Final product and repair prices are confirmed before work or sale.') }}</p>
-    <p class="muted">{{ tr('Pay now opens checkout to view Telebirr transfer details. Manual transfers are not automatically verified.') }}</p>
-    <a class="button-link" href="{{ url_for('views.checkout') }}">{{ tr('Pay now') }}</a>
+    <p class="muted">{{ tr('Checkout submits an order request and does not collect payment. Wait for us to confirm the final amount before transferring.') }}</p>
+    <a class="button-link" href="{{ url_for('views.checkout') }}">{{ tr('Continue to checkout') }}</a>
   {% else %}
     <p>{{ tr('Your cart is empty.') }}</p>
     <a class="button-link" href="{{ url_for('views.home') }}">{{ tr('Continue shopping') }}</a>

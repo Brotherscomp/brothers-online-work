@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 from functools import wraps
 from hmac import compare_digest
 import secrets
+import time
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
@@ -27,6 +28,7 @@ from .models import (
     update_order_status,
 )
 from .payments import TRANSFER_PAYMENT_METHODS, payment_method_label
+from .security import enforce_rate_limit, is_safe_local_redirect
 from .translations import translate
 
 
@@ -59,8 +61,19 @@ def valid_csrf_token():
 def manager_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
-        if not session.get('manager_authenticated'):
+        last_activity = session.get('manager_last_activity_at')
+        now = int(time.time())
+        if (
+            not session.get('manager_authenticated')
+            or not isinstance(last_activity, int)
+            or last_activity > now + 60
+            or now - last_activity > 30 * 60
+        ):
+            session.pop('manager_authenticated', None)
+            session.pop('manager_last_activity_at', None)
+            session.pop('manager_csrf_token', None)
             return redirect(url_for('manager.login', next=request.path))
+        session['manager_last_activity_at'] = now
         return view(*args, **kwargs)
     return wrapped
 
@@ -78,11 +91,14 @@ def login():
         supplied_password = request.form.get('password', '')
         if not valid_csrf_token():
             abort(400)
-        if configured_password and compare_digest(supplied_password, configured_password):
+        enforce_rate_limit('manager-login', 5, 900)
+        if configured_password and len(supplied_password) <= 1024 and compare_digest(supplied_password, configured_password):
             session['manager_authenticated'] = True
+            session['manager_last_activity_at'] = int(time.time())
+            session['manager_csrf_token'] = secrets.token_urlsafe(32)
             session.permanent = True
             destination = request.args.get('next', '')
-            if destination.startswith('/manager/') and not destination.startswith('//'):
+            if is_safe_local_redirect(destination) and destination.startswith('/manager/'):
                 return redirect(destination)
             return redirect(url_for('manager.dashboard'))
         flash(
@@ -101,10 +117,23 @@ def login():
 @manager.route('/requests')
 @manager_required
 def requests():
+    try:
+        page = min(100000, max(1, int(request.args.get('page', '1'))))
+    except ValueError:
+        page = 1
+    per_page = 50
+    device_requests, total = get_device_requests(page=page, per_page=per_page)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+        device_requests, total = get_device_requests(page=page, per_page=per_page)
     return render_template(
         'manager/requests.html',
-        device_requests=get_device_requests(),
+        device_requests=device_requests,
         request_statuses=REQUEST_STATUSES,
+        page=page,
+        total_pages=total_pages,
+        total=total,
     )
 
 
@@ -200,6 +229,8 @@ def logout():
     if not valid_csrf_token():
         abort(400)
     session.pop('manager_authenticated', None)
+    session.pop('manager_last_activity_at', None)
+    session.pop('manager_csrf_token', None)
     flash(translate('You have been logged out of the manager page.'), 'success')
     return redirect(url_for('manager.login'))
 
@@ -391,7 +422,20 @@ def toggle_product_visibility(product_id):
 @manager_required
 def customers():
     search = request.args.get('q', '').strip()[:120]
-    return render_template('manager/customers.html', customers=get_admin_customers(search), search=search)
+    try:
+        page = min(100000, max(1, int(request.args.get('page', '1'))))
+    except ValueError:
+        page = 1
+    per_page = 50
+    customers, total = get_admin_customers(search, page=page, per_page=per_page)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+        customers, total = get_admin_customers(search, page=page, per_page=per_page)
+    return render_template(
+        'manager/customers.html', customers=customers, search=search,
+        page=page, total_pages=total_pages, total=total,
+    )
 
 
 @manager.route('/system', methods=['GET', 'POST'])

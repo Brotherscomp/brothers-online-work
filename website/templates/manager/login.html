@@ -9,7 +9,7 @@
       <form class="manager-login-form" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="contact-field" for="manager-password">{{ tr('Manager password') }}
-          <input id="manager-password" type="password" name="password" autocomplete="current-password" required>
+          <input id="manager-password" type="password" name="password" autocomplete="current-password" maxlength="1024" required>
         </label>
         <button class="contact-submit" type="submit">{{ tr('Sign in') }}</button>
       </form>

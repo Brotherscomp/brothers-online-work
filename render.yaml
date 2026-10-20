@@ -8,6 +8,10 @@ services:
     autoDeployTrigger: off
     healthCheckPath: /health
     envVars:
+      - key: APP_ENV
+        value: production
+      - key: PUBLIC_BASE_URL
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: SESSION_COOKIE_SECURE
@@ -31,6 +35,4 @@ services:
       - key: CONTACT_RECIPIENT
         value: yazezewkassa@gmail.com
       - key: ADMIN_PANEL_PASSWORD
-        sync: false
-      - key: CHAPA_SECRET_KEY
         sync: false
