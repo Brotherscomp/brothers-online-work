@@ -647,6 +647,7 @@ ORDER_STATUSES = (
     'Request received', 'Confirmed', 'Preparing', 'Ready for pickup', 'Completed', 'Cancelled',
 )
 ORDER_PAYMENT_STATUSES = ('Unpaid', 'Paid')
+PAYMENT_REQUIRED_ORDER_STATUSES = frozenset({'Ready for pickup', 'Completed'})
 
 
 def get_manager_dashboard_data(selected_period='7d'):
@@ -798,8 +799,10 @@ def update_order_status(order_id, status):
             if locked_order.rowcount != 1:
                 return 'not_found'
             order = connection.execute(
-                'SELECT inventory_applied FROM orders WHERE id = ?', (order_id,)
+                'SELECT inventory_applied, payment_status FROM orders WHERE id = ?', (order_id,)
             ).fetchone()
+            if status in PAYMENT_REQUIRED_ORDER_STATUSES and order['payment_status'] != 'Paid':
+                return 'payment_required'
             should_apply = status not in {'Request received', 'Cancelled'}
             applied = bool(order['inventory_applied'])
             if should_apply and not applied:
@@ -836,15 +839,27 @@ def update_order_status(order_id, status):
 
 def update_order_payment_status(order_id, payment_status):
     if payment_status not in ORDER_PAYMENT_STATUSES:
-        return False
+        return 'not_found'
     with get_db_connection() as connection:
-        order = connection.execute('SELECT status FROM orders WHERE id = ?', (order_id,)).fetchone()
-        if order is None or order['status'] == 'Cancelled':
-            return False
+        # Serialize payment edits with order-status changes so the manager
+        # cannot leave a fulfilled order unpaid through concurrent updates.
+        locked_order = connection.execute(
+            'UPDATE orders SET payment_status = payment_status WHERE id = ?',
+            (order_id,),
+        )
+        if locked_order.rowcount != 1:
+            return 'not_found'
+        order = connection.execute(
+            'SELECT status FROM orders WHERE id = ?', (order_id,)
+        ).fetchone()
+        if order['status'] == 'Cancelled':
+            return 'not_found'
         if payment_status == 'Paid' and order['status'] not in {
             'Confirmed', 'Preparing', 'Ready for pickup', 'Completed',
         }:
-            return False
+            return 'confirm_order_first'
+        if payment_status == 'Unpaid' and order['status'] in PAYMENT_REQUIRED_ORDER_STATUSES:
+            return 'fulfillment_requires_payment'
         if payment_status == 'Paid':
             cursor = connection.execute(
                 "UPDATE orders SET payment_status = ? WHERE id = ? AND status IN ('Confirmed', 'Preparing', 'Ready for pickup', 'Completed')",
@@ -855,7 +870,7 @@ def update_order_payment_status(order_id, payment_status):
                 "UPDATE orders SET payment_status = ? WHERE id = ? AND status <> 'Cancelled'",
                 (payment_status, order_id),
             )
-        return cursor.rowcount > 0
+        return 'updated' if cursor.rowcount > 0 else 'not_found'
 
 
 def get_admin_order(order_id):

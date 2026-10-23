@@ -10,6 +10,7 @@ from .emailing import MailConfigurationError, MailDeliveryError, send_email
 from .models import (
     ORDER_PAYMENT_STATUSES,
     ORDER_STATUSES,
+    PAYMENT_REQUIRED_ORDER_STATUSES,
     get_admin_customers,
     get_admin_order,
     get_admin_orders,
@@ -280,6 +281,7 @@ def orders():
     return render_template(
         'manager/orders.html', orders=orders, order_items=order_items,
         order_statuses=ORDER_STATUSES, payment_statuses=ORDER_PAYMENT_STATUSES,
+        payment_required_order_statuses=PAYMENT_REQUIRED_ORDER_STATUSES,
         selected_status=selected_status, search=search,
         payment_method_label=payment_method_label,
     )
@@ -293,6 +295,8 @@ def change_order_status(order_id):
     result = update_order_status(order_id, request.form.get('status', ''))
     if result == 'updated':
         flash('Order status and physical stock were updated.', 'success')
+    elif result == 'payment_required':
+        flash('Verify that the transfer reached your account and mark the order Paid before setting it Ready for pickup or Completed.', 'error')
     elif result == 'insufficient_stock':
         flash('There is not enough stock to confirm this order. Review stock first.', 'error')
     else:
@@ -305,10 +309,15 @@ def change_order_status(order_id):
 def change_payment_status(order_id):
     if not valid_csrf_token():
         abort(400)
-    if update_order_payment_status(order_id, request.form.get('payment_status', '')):
+    result = update_order_payment_status(order_id, request.form.get('payment_status', ''))
+    if result == 'updated':
         flash('Payment status updated.', 'success')
+    elif result == 'confirm_order_first':
+        flash('Confirm the order before marking it Paid. Verify the transfer in your account first.', 'error')
+    elif result == 'fulfillment_requires_payment':
+        flash('Ready for pickup and Completed orders must stay Paid. Move the order back before correcting its payment status.', 'error')
     else:
-        flash('Confirm the order before marking it paid. Cancelled orders cannot be marked paid.', 'error')
+        flash('The payment status could not be updated. Cancelled orders cannot be changed.', 'error')
     return redirect(url_for('manager.orders'))
 
 
