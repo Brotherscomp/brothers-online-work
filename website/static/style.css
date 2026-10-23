@@ -628,6 +628,11 @@ main {
 .manager-table-actions form { width: auto; max-width: none; margin: 0; }
 .text-button { padding: 0; border: 0; color: #315fbb; background: transparent; font: inherit; cursor: pointer; }
 .order-badge { display: inline-flex; padding: .25rem .55rem; border-radius: 999px; color: #315a9e; background: #edf3ff; font-size: .7rem; white-space: nowrap; }
+.manager-order-workflow { margin: 0 0 1rem; padding: .8rem 1rem; border-left: 4px solid #2459c4; border-radius: .45rem; background: #f2f6ff; color: #3b5070; font-size: .82rem; line-height: 1.5; }
+.manager-payment-badge { display: inline-flex; padding: .25rem .55rem; border-radius: 999px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.manager-payment-badge.is-paid { color: #17634d; background: #e6f5ed; }
+.manager-payment-badge.is-unpaid { color: #84570d; background: #fff2d6; }
+.manager-payment-hold { margin: 0; padding: .65rem .8rem; border: 1px solid #f0d49a; border-radius: .55rem; background: #fff9ea; color: #76510f; font-size: .8rem; line-height: 1.5; }
 .manager-order-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid #dfe7f2; border-radius: .85rem; background: white; }
 .manager-order-top { display: flex; justify-content: space-between; gap: 1rem; }
 .manager-order-top h2 { margin: 0; color: #20395d; font-size: 1rem; }
