@@ -754,7 +754,9 @@ def get_manager_dashboard_data(selected_period='7d'):
 
 def get_admin_orders(status='', search=''):
     conditions, parameters = [], []
-    if status in ORDER_STATUSES:
+    if status == 'active':
+        conditions.append("status <> 'Cancelled'")
+    elif status in ORDER_STATUSES:
         conditions.append('status = ?')
         parameters.append(status)
     if search:

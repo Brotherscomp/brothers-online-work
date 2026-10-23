@@ -275,7 +275,9 @@ def dashboard():
 @manager.route('/orders')
 @manager_required
 def orders():
-    selected_status = request.args.get('status', '')
+    selected_status = request.args.get('status', 'active').strip()
+    if selected_status not in {'active', ''} and selected_status not in ORDER_STATUSES:
+        selected_status = 'active'
     search = request.args.get('q', '').strip()[:120]
     orders, order_items = get_admin_orders(selected_status, search)
     return render_template(
